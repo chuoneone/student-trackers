@@ -1,0 +1,16 @@
+{
+  "name": "student-trackers",
+  "version": "1.0.0",
+  "description": "Unified repository for Grade Tracker and Emotion Tracker systems (clasp + GitHub Pages)",
+  "scripts": {
+    "push-grade": "cd backend-grade && npx clasp push",
+    "push-emotion": "cd backend-emotion && npx clasp push",
+    "deploy-grade": "cd backend-grade && npx clasp deploy",
+    "deploy-emotion": "cd backend-emotion && npx clasp deploy",
+    "push-frontend": "git add . && git commit -m \"update: automated sync\" && git push origin main",
+    "deploy-all": "npm run push-grade && npm run push-emotion && npm run push-frontend"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
