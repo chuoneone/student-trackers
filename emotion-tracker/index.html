@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherFlow 學生情緒紀錄系統</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+  <div class="background-decorations">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+  </div>
+
+  <!-- Password Lock Screen (Hidden by default since password is bypassed) -->
+  <div id="lockScreen" class="lock-screen-overlay hidden">
+    <div class="lock-card card-glass">
+      <div class="lock-header">
+        <div class="lock-icon">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2>AetherFlow</h2>
+        <p>學生情緒紀錄系統</p>
+      </div>
+      <form id="lockForm">
+        <div class="form-group">
+          <label for="passwordInput">請輸入解鎖密碼</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-key"></i>
+            <input type="password" id="passwordInput" placeholder="輸入密碼" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="primary-btn full-width-btn">
+          <i class="fa-solid fa-unlock"></i> 驗證解鎖
+        </button>
+        <p id="lockErrorMsg" class="error-text hidden">密碼錯誤，請重新輸入！</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main System App (Hidden by default) -->
+  <div id="mainApp" class="app-container hidden">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <i class="fa-solid fa-face-smile"></i>
+        </div>
+        <div>
+          <h1>學生情緒紀錄系統</h1>
+          <p class="subtitle">Student Emotion Tracking & Analytics</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="action-btn" title="切換主題">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+        <button id="refreshBtn" class="action-btn" title="同步資料">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+        <button id="logoutBtn" class="action-btn text-expense hidden" title="鎖定系統">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Class Selector Tabs -->
+    <section class="class-selector-section">
+      <div class="class-tabs">
+        <button class="class-tab-btn active" data-grade="八仁">
+          <i class="fa-solid fa-users-rectangle"></i> 八仁
+        </button>
+        <button class="class-tab-btn" data-grade="八義">
+          <i class="fa-solid fa-users-rectangle"></i> 八義
+        </button>
+        <button class="class-tab-btn" data-grade="七仁">
+          <i class="fa-solid fa-users-rectangle"></i> 七仁
+        </button>
+        <button class="class-tab-btn" data-grade="七義">
+          <i class="fa-solid fa-users-rectangle"></i> 七義
+        </button>
+      </div>
+    </section>
+
+    <!-- Dashboard: Students Grid & Analytics -->
+    <div class="dashboard-grid">
+      
+      <!-- Left: Student Cards Grid -->
+      <section class="students-section">
+        <div class="section-title-bar">
+          <h3><i class="fa-solid fa-users"></i> 班級學生名單</h3>
+          <span id="studentCountBadge" class="badge">0 位學生</span>
+        </div>
+        <div id="studentsGrid" class="students-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Right: Charts & Analysis -->
+      <section class="analytics-section">
+        <div class="card-glass analytics-card">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-chart-pie"></i> 今日情緒分佈</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="emotionChart"></canvas>
+            <div id="noChartData" class="no-data-placeholder hidden">
+              <i class="fa-solid fa-face-meh"></i>
+              <p>尚無任何情緒登錄數據</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Records -->
+        <div class="card-glass history-card">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-history"></i> 歷程紀錄</h3>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="searchInput" placeholder="搜尋姓名或備註...">
+            </div>
+          </div>
+          <div class="history-list-container">
+            <ul id="historyList" class="history-list">
+              <!-- Dynamically populated -->
+            </ul>
+            <div id="noHistoryData" class="no-data-placeholder">
+              <i class="fa-solid fa-folder-open"></i>
+              <p>目前尚無情緒紀錄</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </div>
+
+  <!-- Record Emotion Modal -->
+  <div id="recordModal" class="modal-overlay">
+    <div class="modal-card card-glass">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-heart-pulse"></i> 紀錄情緒明細</h3>
+        <button id="closeRecordModalBtn" class="close-btn">&times;</button>
+      </div>
+      <form id="recordForm">
+        <div class="form-group-row">
+          <div class="form-group">
+            <label>學生姓名</label>
+            <input type="text" id="recordStudentName" readonly class="readonly-input">
+          </div>
+          <div class="form-group">
+            <label for="recordDate">日期</label>
+            <input type="date" id="recordDate" required>
+          </div>
+        </div>
+
+        <!-- Emotion Selector Grid -->
+        <div class="form-group">
+          <label>今日情緒狀態</label>
+          <div class="emotion-selector-grid">
+            <input type="radio" id="emoHappy" name="emotion" value="😊" checked>
+            <label for="emoHappy" class="emo-option option-happy">
+              <span class="emoji">😊</span>
+              <span class="emo-name">開心</span>
+            </label>
+
+            <input type="radio" id="emoCalm" name="emotion" value="😐">
+            <label for="emoCalm" class="emo-option option-calm">
+              <span class="emoji">😐</span>
+              <span class="emo-name">平靜</span>
+            </label>
+
+            <input type="radio" id="emoExcited" name="emotion" value="🤩">
+            <label for="emoExcited" class="emo-option option-happy">
+              <span class="emoji">🤩</span>
+              <span class="emo-name">興奮</span>
+            </label>
+
+            <input type="radio" id="emoSad" name="emotion" value="😢">
+            <label for="emoSad" class="emo-option option-sad">
+              <span class="emoji">😢</span>
+              <span class="emo-name">難過</span>
+            </label>
+
+            <input type="radio" id="emoAngry" name="emotion" value="😡">
+            <label for="emoAngry" class="emo-option option-angry">
+              <span class="emoji">😡</span>
+              <span class="emo-name">生氣</span>
+            </label>
+
+            <input type="radio" id="emoAnxious" name="emotion" value="😰">
+            <label for="emoAnxious" class="emo-option option-anxious">
+              <span class="emoji">😰</span>
+              <span class="emo-name">焦慮</span>
+            </label>
+
+            <input type="radio" id="emoTired" name="emotion" value="😴">
+            <label for="emoTired" class="emo-option option-sad">
+              <span class="emoji">😴</span>
+              <span class="emo-name">疲倦</span>
+            </label>
+
+            <input type="radio" id="emoSilly" name="emotion" value="🤪">
+            <label for="emoSilly" class="emo-option option-happy">
+              <span class="emoji">🤪</span>
+              <span class="emo-name">搞怪</span>
+            </label>
+
+            <input type="radio" id="emoCustom" name="emotion" value="custom">
+            <label for="emoCustom" class="emo-option option-none">
+              <span class="emoji">✍️</span>
+              <span class="emo-name">其他</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Custom Emotion Input (Hidden by default) -->
+        <div id="customEmotionGroup" class="form-group hidden">
+          <label for="customEmotionInput">自訂情緒名稱 (例如：期待、無聊、放鬆，前面可手動輸入 Emoji)</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-pen-nib"></i>
+            <input type="text" id="customEmotionInput" placeholder="輸入自訂情緒，例如：期待" maxlength="15">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="recordNote">備註（如輔導紀錄、行為描述）</label>
+          <textarea id="recordNote" placeholder="輸入紀錄備註（非必填）" rows="3"></textarea>
+        </div>
+
+        <div class="form-actions">
+          <button type="button" id="cancelRecordBtn" class="btn btn-secondary">取消</button>
+          <button type="submit" id="saveRecordBtn" class="btn btn-primary">
+            <span id="btnText">儲存紀錄</span>
+            <span id="btnLoader" class="loader hidden"></span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- App JS -->
+  <script src="app.js"></script>
+</body>
+</html>

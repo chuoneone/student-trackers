@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AetherFlow 學生小考成績登記系統</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="style.css">
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+<body>
+  <div class="background-decorations">
+    <div class="circle circle-1"></div>
+    <div class="circle circle-2"></div>
+    <div class="circle circle-3"></div>
+  </div>
+
+  <!-- Password Lock Screen (Hidden by default since password is bypassed) -->
+  <div id="lockScreen" class="lock-screen-overlay hidden">
+    <div class="lock-card card-glass">
+      <div class="lock-header">
+        <div class="lock-icon">
+          <i class="fa-solid fa-lock"></i>
+        </div>
+        <h2>AetherFlow</h2>
+        <p>學生小考成績登記系統</p>
+      </div>
+      <form id="lockForm">
+        <div class="form-group">
+          <label for="passwordInput">請輸入解鎖密碼</label>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-key"></i>
+            <input type="password" id="passwordInput" placeholder="輸入密碼" required autocomplete="current-password">
+          </div>
+        </div>
+        <button type="submit" class="primary-btn full-width-btn">
+          <i class="fa-solid fa-unlock"></i> 驗證解鎖
+        </button>
+        <p id="lockErrorMsg" class="error-text hidden">密碼錯誤，請重新輸入！</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- Main System App (Hidden by default) -->
+  <div id="mainApp" class="app-container hidden">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo-icon">
+          <i class="fa-solid fa-graduation-cap"></i>
+        </div>
+        <div>
+          <h1>學生小考成績登記系統</h1>
+          <p class="subtitle">Student Grade Tracking & Analytics</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="themeToggleBtn" class="action-btn" title="切換主題">
+          <i class="fa-solid fa-sun"></i>
+        </button>
+        <button id="refreshBtn" class="action-btn" title="同步資料">
+          <i class="fa-solid fa-rotate"></i>
+        </button>
+        <button id="logoutBtn" class="action-btn text-expense hidden" title="鎖定系統">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Class Selector Tabs -->
+    <section class="class-selector-section">
+      <div class="class-tabs">
+        <button class="class-tab-btn active" data-grade="八仁">
+          <i class="fa-solid fa-users-rectangle"></i> 八仁
+        </button>
+        <button class="class-tab-btn" data-grade="八義">
+          <i class="fa-solid fa-users-rectangle"></i> 八義
+        </button>
+        <button class="class-tab-btn" data-grade="七仁">
+          <i class="fa-solid fa-users-rectangle"></i> 七仁
+        </button>
+        <button class="class-tab-btn" data-grade="七義">
+          <i class="fa-solid fa-users-rectangle"></i> 七義
+        </button>
+      </div>
+    </section>
+
+    <!-- Dashboard: Students Grid & Analytics -->
+    <div class="dashboard-grid">
+      
+      <!-- Left: Student Cards Grid -->
+      <section class="students-section">
+        <div class="section-title-bar">
+          <h3><i class="fa-solid fa-users"></i> 資源班學生名單</h3>
+          <span id="studentCountBadge" class="badge">0 位學生</span>
+        </div>
+        <div id="studentsGrid" class="students-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Right: Charts & Analysis -->
+      <section class="analytics-section">
+        
+        <!-- Chart 1: Class Quiz Score Trend -->
+        <div class="card-glass analytics-card">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-chart-line"></i> 班級歷次小考均分走勢</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="gradeTrendChart"></canvas>
+            <div id="noTrendChartData" class="no-data-placeholder hidden">
+              <i class="fa-solid fa-inbox"></i>
+              <p>目前尚無小考成績數據</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chart 2: Grade Range Distribution -->
+        <div class="card-glass analytics-card">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-chart-bar"></i> 學生個人成績分佈圖</h3>
+          </div>
+          <div class="chart-container">
+            <canvas id="gradeDistChart"></canvas>
+            <div id="noDistChartData" class="no-data-placeholder hidden">
+              <i class="fa-solid fa-face-meh"></i>
+              <p>尚未有任何登記的小考成績</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Records -->
+        <div class="card-glass history-card">
+          <div class="section-header">
+            <h3><i class="fa-solid fa-clock-rotate-left"></i> 全體歷次小考紀錄</h3>
+            <div class="search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input type="text" id="searchInput" placeholder="搜尋學生姓名或小考科目...">
+            </div>
+          </div>
+          <div class="history-list-container">
+            <ul id="historyList" class="history-list">
+              <!-- Dynamically populated -->
+            </ul>
+            <div id="noHistoryData" class="no-data-placeholder">
+              <i class="fa-solid fa-folder-open"></i>
+              <p>目前尚無成績紀錄</p>
+            </div>
+          </div>
+        </div>
+
+      </section>
+    </div>
+  </div>
+
+  <!-- Record Grade Modal -->
+  <div id="recordModal" class="modal-overlay">
+    <div class="modal-card card-glass modal-wide">
+      <div class="modal-header">
+        <h3><i class="fa-solid fa-graduation-cap"></i> 登記與管理小考成績</h3>
+        <button id="closeRecordModalBtn" class="close-btn">&times;</button>
+      </div>
+      <div class="modal-body-split">
+        
+        <!-- Left Pane: Add Score Form -->
+        <form id="recordForm" class="modal-form-pane">
+          <div class="form-group-row">
+            <div class="form-group">
+              <label>學生姓名</label>
+              <input type="text" id="recordStudentName" readonly class="readonly-input">
+            </div>
+            <div class="form-group">
+              <label for="recordDate">日期</label>
+              <input type="date" id="recordDate" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gradeSubject">小考科目 / 單元名稱</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-book-open"></i>
+              <input type="text" id="gradeSubject" placeholder="例如：數學小考一、L1單字" required maxlength="20">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="gradeScore">小考得分 (0 - 100)</label>
+            <div class="input-with-icon">
+              <i class="fa-solid fa-star"></i>
+              <input type="number" id="gradeScore" placeholder="輸入分數 (0 - 100)" min="0" max="100" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="recordNote">備註（如學習狀況、需加強之處）</label>
+            <textarea id="recordNote" placeholder="輸入紀錄備註（非必填）" rows="3"></textarea>
+          </div>
+
+          <div class="form-actions">
+            <button type="button" id="cancelRecordBtn" class="btn btn-secondary">取消</button>
+            <button type="submit" id="saveRecordBtn" class="btn btn-primary">
+              <span id="btnText">儲存成績</span>
+              <span id="btnLoader" class="loader hidden"></span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Right Pane: Student Personal History -->
+        <div class="modal-history-pane">
+          <h4><i class="fa-solid fa-list-check"></i> 個人成績明細</h4>
+          <div class="personal-history-container">
+            <ul id="personalHistoryList" class="personal-history-list">
+              <!-- Dynamically populated -->
+            </ul>
+            <div id="noPersonalHistory" class="no-data-placeholder">
+              <i class="fa-solid fa-inbox"></i>
+              <p>尚未登記任何小考</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Main Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
