@@ -6,7 +6,7 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycby2SynFUrJPEzSL2IK6
 let allStudents = [];
 let allRecords = [];
 let emotionSummary = {};
-let currentGrade = "八仁";
+let currentGrade = "七年級";
 let chartInstance = null;
 
 // DOM 元素 - 解鎖畫面

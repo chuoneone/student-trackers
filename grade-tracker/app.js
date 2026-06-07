@@ -6,7 +6,7 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzp19TPHRWvVvCENwuR
 let allStudents = [];
 let allRecords = [];
 let gradeSummary = {};
-let currentGrade = "八仁";
+let currentGrade = "七年級";
 let trendChartInstance = null;
 let distChartInstance = null;
 

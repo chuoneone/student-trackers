@@ -60,7 +60,7 @@ function getOrCreateSpreadsheet() {
     var values = studentsSheet.getDataRange().getValues();
     var hasOldNames = false;
     for (var i = 1; i < values.length; i++) {
-      if (values[i][1] === "王小明" || values[i][0] === "7年級" || values[i][0] === "8年級") {
+      if (values[i][1] === "王小明" || values[i][0] === "7年級" || values[i][0] === "8年級" || values[i][0] === "七仁" || values[i][0] === "七義" || values[i][0] === "八仁" || values[i][0] === "八義") {
         hasOldNames = true;
         break;
       }
@@ -76,13 +76,15 @@ function getOrCreateSpreadsheet() {
   if (isNewStudents) {
     // 填入示範用學生名單 (保護隱私)
     var defaultStudents = [
-      ["八仁", "蘇祐慶"],
-      ["八仁", "徐文彥"],
-      ["八義", "黃寬益"],
-      ["八義", "黃雅璇"],
-      ["七仁", "林子龍"],
-      ["七義", "楊育翔"],
-      ["七義", "徐暄"]
+      ["八年級", "蘇祐慶"],
+      ["八年級", "徐文彥"],
+      ["八年級", "黃寬益"],
+      ["八年級", "黃雅璇"],
+      ["七年級", "林子龍"],
+      ["七年級", "楊育翔"],
+      ["七年級", "徐暄"],
+      ["七年級", "陳燕鈴"],
+      ["七年級", "陳凱莉"]
     ];
     
     defaultStudents.forEach(function(student) {
@@ -357,13 +359,15 @@ function resetStudentsWithFakeNames() {
   }
   
   var fakeStudents = [
-    ["八仁", "蘇祐慶"],
-    ["八仁", "徐文彥"],
-    ["八義", "黃寬益"],
-    ["八義", "黃雅璇"],
-    ["七仁", "林子龍"],
-    ["七義", "楊育翔"],
-    ["七義", "徐暄"]
+    ["八年級", "蘇祐慶"],
+    ["八年級", "徐文彥"],
+    ["八年級", "黃寬益"],
+    ["八年級", "黃雅璇"],
+    ["七年級", "林子龍"],
+    ["七年級", "楊育翔"],
+    ["七年級", "徐暄"],
+    ["七年級", "陳燕鈴"],
+    ["七年級", "陳凱莉"]
   ];
   
   fakeStudents.forEach(function(student) {
