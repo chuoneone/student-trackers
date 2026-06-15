@@ -1,4 +1,2 @@
 node_modules/
-.clasprc.json
-.claspignore
 package-lock.json

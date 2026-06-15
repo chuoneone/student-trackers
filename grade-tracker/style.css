@@ -365,7 +365,7 @@ body {
   box-shadow: 0 8px 24px rgba(0,0,0,0.4);
 }
 
-/* Avatar depending on Emotion status */
+/* Avatar styling based on grade status */
 .student-avatar {
   width: 56px;
   height: 56px;
@@ -379,23 +379,6 @@ body {
   position: relative;
   transition: all 0.25s ease;
   box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-}
-
-/* Mini emotion indicator on avatar corner */
-.emotion-badge {
-  position: absolute;
-  bottom: -2px;
-  right: -2px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: var(--panel-bg);
-  border: 1.5px solid var(--panel-border);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.8rem;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
 
 /* Student Card text name and label */
@@ -578,7 +561,7 @@ body {
   gap: 0.75rem;
 }
 
-.history-emo-indicator {
+.history-score-indicator {
   font-size: 1.3rem;
 }
 
@@ -734,48 +717,6 @@ form textarea:focus {
 .input-with-icon i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
 .input-with-icon input { padding-left: 2.5rem !important; }
 
-/* Emotion selector grid in Modal */
-.emotion-selector-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.5rem;
-}
-
-.emotion-selector-grid input[type="radio"] { display: none; }
-
-.emo-option {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem 0.25rem;
-  border: 1px solid var(--input-border);
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.emo-option .emoji { font-size: 1.5rem; }
-.emo-option .emo-name { font-size: 0.7rem; font-weight: 600; color: var(--text-secondary); }
-
-.emotion-selector-grid input[type="radio"]:checked + .emo-option {
-  transform: scale(1.05);
-}
-
-.emotion-selector-grid input[type="radio"]:checked + .emo-option .emo-name {
-  color: #ffffff;
-}
-
-#emoHappy:checked + .option-happy { background: var(--color-happy-bg); border-color: var(--color-happy); }
-#emoCalm:checked + .option-calm { background: var(--color-calm-bg); border-color: var(--color-calm); }
-#emoSad:checked + .option-sad { background: var(--color-sad-bg); border-color: var(--color-sad); }
-#emoAngry:checked + .option-angry { background: var(--color-angry-bg); border-color: var(--color-angry); }
-#emoAnxious:checked + .option-anxious { background: var(--color-anxious-bg); border-color: var(--color-anxious); }
-#emoExcited:checked + .option-happy { background: var(--color-happy-bg); border-color: var(--color-happy); }
-#emoTired:checked + .option-sad { background: var(--color-sad-bg); border-color: var(--color-sad); }
-#emoSilly:checked + .option-happy { background: var(--color-happy-bg); border-color: var(--color-happy); }
-#emoCustom:checked + .option-none { background: var(--color-custom-bg); border-color: var(--color-custom); }
-
 .form-actions {
   display: flex;
   justify-content: flex-end;
@@ -908,12 +849,6 @@ form textarea:focus {
   .class-tabs { width: 100%; }
   .class-tab-btn { flex: 1; justify-content: center; padding: 0.5rem 1rem; }
 
-  /* Emotion grid styling inside modals */
-  .emotion-selector-grid { grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
-  .emo-option { padding: 0.45rem 0.2rem; }
-  .emo-option .emoji { font-size: 1.35rem; }
-  .emo-option .emo-name { font-size: 0.65rem; }
-
   /* Better styling for history list items on small screens */
   .history-item {
     flex-direction: column;
@@ -952,13 +887,6 @@ form textarea:focus {
     width: 44px;
     height: 44px;
     font-size: 0.95rem;
-  }
-  .student-avatar .emotion-badge {
-    width: 18px;
-    height: 18px;
-    font-size: 0.75rem;
-    bottom: -2px;
-    right: -2px;
   }
   .student-name {
     font-size: 0.8rem;

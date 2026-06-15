@@ -1,6 +1,26 @@
-// 學生小考成績登記系統 前端邏輯 (c:\Users\USER\Desktop\netlify\frontend\app.js)
+// 學生小考成績登記系統 前端邏輯
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+import {
+  addDoc,
+  collection,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  getFirestore
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbzp19TPHRWvVvCENwuRplLVQ0o0ww__fM03nf1W9rFS_wgUqo8XeXXqM0Lrv1e5r5LMfQ/exec";
+const firebaseConfig = {
+  apiKey: "AIzaSyDAuYiFJn5NhriV89kTLNVoHxFHuKQUIwU",
+  authDomain: "student-bonus-system.firebaseapp.com",
+  projectId: "student-bonus-system",
+  storageBucket: "student-bonus-system.firebasestorage.app",
+  messagingSenderId: "786835495921",
+  appId: "1:786835495921:web:b9f6b0452e430f2d14c250"
+};
+
+const firebaseApp = initializeApp(firebaseConfig);
+const db = getFirestore(firebaseApp);
 
 // 全局狀態
 let allStudents = [];
@@ -108,8 +128,7 @@ function updateThemeIcon(theme) {
 
 // 驗證與登入處理
 function checkAuth() {
-  // 自動在背景設定密碼 520 以利向後端 API 通訊，使用者不需要手動輸入密碼
-  sessionStorage.setItem("system_password", "520");
+  sessionStorage.setItem("system_password", "chuone");
   sessionStorage.setItem("system_unlocked", "true");
   
   lockScreen.classList.add("hidden");
@@ -117,7 +136,7 @@ function checkAuth() {
   fetchData();
 }
 
-// 密碼驗證解鎖 (後端安全驗證)
+// 密碼驗證解鎖
 async function handleUnlock(e) {
   e.preventDefault();
   const enteredPassword = passwordInput.value;
@@ -126,29 +145,20 @@ async function handleUnlock(e) {
   lockErrorMsg.classList.add("hidden");
   
   try {
-    const response = await fetch(`${GAS_API_URL}?password=${encodeURIComponent(enteredPassword)}`);
-    if (!response.ok) throw new Error("網路連線錯誤");
-    
-    const result = await response.json();
-    if (result.status === "success") {
+    const settingsSnap = await getDoc(doc(db, "config", "settings"));
+    const correctPassword = settingsSnap.exists() ? settingsSnap.data().password || "chuone" : "chuone";
+
+    if (enteredPassword === correctPassword) {
       sessionStorage.setItem("system_password", enteredPassword);
       sessionStorage.setItem("system_unlocked", "true");
-      
-      allStudents = result.students || [];
-      allRecords = result.records || [];
-      gradeSummary = result.summary || {};
-      
+
       lockScreen.classList.add("hidden");
       mainApp.classList.remove("hidden");
       showToast("解鎖成功", "success");
-      
-      renderStudents();
-      renderHistory();
-      renderCharts();
-    } else if (result.message === "Unauthorized") {
-      throw new Error("密碼錯誤");
+
+      await fetchData();
     } else {
-      throw new Error(result.message || "驗證失敗");
+      throw new Error("密碼錯誤");
     }
   } catch (error) {
     console.error(error);
@@ -254,37 +264,37 @@ function formatSubject(value) {
 }
 
 async function fetchData() {
-  const password = sessionStorage.getItem("system_password");
-  if (!password) {
-    handleLock();
-    return;
-  }
-
-  showToast("正在從雲端同步名單與成績...", "info");
+  showToast("正在與 Firebase 同步名單與成績...", "info");
   refreshBtn.disabled = true;
   refreshBtn.querySelector("i").classList.add("fa-spin");
 
   try {
-    const response = await fetch(`${GAS_API_URL}?password=${encodeURIComponent(password)}`);
-    if (!response.ok) throw new Error("網路連線錯誤");
-    
-    const result = await response.json();
-    if (result.status === "success") {
-      allStudents = result.students || [];
-      allRecords = result.records || [];
-      gradeSummary = result.summary || {};
-      
-      renderStudents();
-      renderHistory();
-      renderCharts();
-      
-      showToast("成績資料庫同步完成", "success");
-    } else if (result.message === "Unauthorized") {
-      showToast("登入已過期，請重新解鎖", "error");
-      handleLock();
-    } else {
-      throw new Error(result.message || "讀取失敗");
-    }
+    const [studentsSnapshot, recordsSnapshot] = await Promise.all([
+      getDocs(collection(db, "students")),
+      getDocs(collection(db, "gradeRecords"))
+    ]);
+
+    allStudents = studentsSnapshot.docs.map(studentDoc => ({
+      id: studentDoc.id,
+      ...studentDoc.data()
+    }));
+
+    allRecords = recordsSnapshot.docs.map(recordDoc => ({
+      id: recordDoc.id,
+      ...recordDoc.data(),
+      score: Number(recordDoc.data().score)
+    }));
+    allRecords.sort((a, b) =>
+      parseRecordDate(b.date) - parseRecordDate(a.date)
+      || new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    gradeSummary = calculateGradeSummary(allRecords, allStudents);
+
+    renderStudents();
+    renderHistory();
+    renderCharts();
+
+    showToast("Firebase 成績資料同步完成", "success");
   } catch (error) {
     console.error(error);
     showToast(`同步失敗: ${error.message}`, "error");
@@ -292,6 +302,50 @@ async function fetchData() {
     refreshBtn.disabled = false;
     refreshBtn.querySelector("i").classList.remove("fa-spin");
   }
+}
+
+function calculateGradeSummary(records, students) {
+  const summary = {};
+
+  students.forEach(student => {
+    if (!summary[student.grade]) {
+      summary[student.grade] = {
+        studentStats: {},
+        distribution: { "90-100": 0, "80-89": 0, "70-79": 0, "60-69": 0, "under60": 0 },
+        total: 0
+      };
+    }
+    summary[student.grade].studentStats[student.name] = { sum: 0, count: 0, avg: null };
+  });
+
+  records.forEach(record => {
+    const score = Number(record.score);
+    if (!summary[record.grade] || isNaN(score)) return;
+
+    const stats = summary[record.grade];
+    if (!stats.studentStats[record.name]) {
+      stats.studentStats[record.name] = { sum: 0, count: 0, avg: null };
+    }
+    stats.studentStats[record.name].sum += score;
+    stats.studentStats[record.name].count += 1;
+
+    if (score >= 90) stats.distribution["90-100"]++;
+    else if (score >= 80) stats.distribution["80-89"]++;
+    else if (score >= 70) stats.distribution["70-79"]++;
+    else if (score >= 60) stats.distribution["60-69"]++;
+    else stats.distribution.under60++;
+    stats.total++;
+  });
+
+  Object.values(summary).forEach(grade => {
+    Object.values(grade.studentStats).forEach(student => {
+      if (student.count > 0) {
+        student.avg = Number((student.sum / student.count).toFixed(1));
+      }
+    });
+  });
+
+  return summary;
 }
 
 // 渲染學生卡片網格 (動態計算平均分與外框著色)
@@ -424,7 +478,7 @@ function renderHistory() {
 
       li.innerHTML = `
         <div class="history-meta">
-          <span class="history-emo-indicator" style="font-weight: 700; font-size: 1rem; color: var(--text-primary); width: auto; margin-right: 0.5rem;">
+          <span class="history-score-indicator" style="font-weight: 700; font-size: 1rem; color: var(--text-primary); width: auto; margin-right: 0.5rem;">
             ${r.score}分
           </span>
           <div class="history-details">
@@ -464,51 +518,29 @@ async function handleRecordSubmit(e) {
   const subject = gradeSubject.value.trim();
   const score = parseInt(gradeScore.value);
   const note = noteInput.value.trim();
-  const password = sessionStorage.getItem("system_password");
   
   if (isNaN(score) || score < 0 || score > 100) {
     showToast("小考分數必須在 0 - 100 之間！", "error");
     return;
   }
 
-  if (!password) {
-    handleLock();
-    return;
-  }
-
   setSubmitting(true);
 
-  const payload = {
-    action: "addGradeRecord",
-    password: password,
+  const recordPayload = {
     grade: currentGrade,
     name: name,
     date: date,
     subject: subject,
     score: score,
-    note: note
+    note: note,
+    timestamp: new Date().toISOString()
   };
 
   try {
-    const response = await fetch(GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) throw new Error("伺服器回應錯誤");
-    const result = await response.json();
-
-    if (result.status === "success") {
-      showToast("成績登記成功", "success");
-
-      showRecordModal(false);
-      await fetchData();
-    } else if (result.message === "Unauthorized") {
-      showToast("登入已逾期，請重新解鎖", "error");
-      handleLock();
-    } else {
-      throw new Error(result.message || "登記失敗");
-    }
+    await addDoc(collection(db, "gradeRecords"), recordPayload);
+    showToast("成績登記成功", "success");
+    showRecordModal(false);
+    await fetchData();
   } catch (error) {
     console.error(error);
     showToast(`登記失敗: ${error.message}`, "error");
@@ -520,39 +552,13 @@ async function handleRecordSubmit(e) {
 // 刪除小考成績紀錄 (共用 API)
 async function handleDeleteGradeRecord(id, studentName = "") {
   showToast("正在刪除成績...", "info");
-  const password = sessionStorage.getItem("system_password");
-
-  if (!password) {
-    handleLock();
-    return;
-  }
-
-  const payload = {
-    action: "deleteGradeRecord",
-    password: password,
-    id: id
-  };
 
   try {
-    const response = await fetch(GAS_API_URL, {
-      method: "POST",
-      body: JSON.stringify(payload)
-    });
-
-    if (!response.ok) throw new Error("伺服器回應錯誤");
-    const result = await response.json();
-
-    if (result.status === "success") {
-      showToast("小考成績已刪除", "success");
-      await fetchData(); // 重新整理
-      if (studentName) {
-        renderPersonalHistory(studentName); // 更新個人明細
-      }
-    } else if (result.message === "Unauthorized") {
-      showToast("登入已逾期，請重新解鎖", "error");
-      handleLock();
-    } else {
-      throw new Error(result.message || "刪除失敗");
+    await deleteDoc(doc(db, "gradeRecords", id));
+    showToast("小考成績已刪除", "success");
+    await fetchData();
+    if (studentName) {
+      renderPersonalHistory(studentName);
     }
   } catch (error) {
     console.error(error);
