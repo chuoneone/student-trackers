@@ -1,0 +1,58 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isTeacher() {
+      return request.auth != null
+        && request.auth.token.email == "pppchin7@gmail.com"
+        && request.auth.token.email_verified == true;
+    }
+
+    match /students/{studentId} {
+      allow read: if true;
+      allow create, delete: if isTeacher();
+      allow update: if isTeacher()
+        || (
+          request.auth == null
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["energy"])
+          && request.resource.data.energy is int
+          && request.resource.data.energy >= resource.data.energy
+          && request.resource.data.energy <= resource.data.energy + 20
+        );
+    }
+
+    match /records/{recordId} {
+      allow read, update, delete: if isTeacher();
+      allow create: if (request.auth == null || isTeacher())
+        && request.resource.data.keys().hasOnly([
+          "name", "grade", "date", "emotion", "note", "timestamp"
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.grade is string
+        && request.resource.data.grade in ["七年級", "八年級"]
+        && request.resource.data.date is string
+        && request.resource.data.date.size() == 10
+        && request.resource.data.emotion is string
+        && request.resource.data.emotion.size() > 0
+        && request.resource.data.emotion.size() <= 100
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.timestamp is string
+        && request.resource.data.timestamp.size() <= 40;
+    }
+
+    match /gradeRecords/{recordId} {
+      allow read, write: if isTeacher();
+    }
+
+    match /config/{document=**} {
+      allow read, write: if isTeacher();
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

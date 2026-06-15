@@ -24,28 +24,21 @@
     <div class="circle circle-3"></div>
   </div>
 
-  <!-- Password Lock Screen (Hidden by default since password is bypassed) -->
-  <div id="lockScreen" class="lock-screen-overlay hidden">
+  <!-- Teacher Google Sign-In Screen -->
+  <div id="lockScreen" class="lock-screen-overlay">
     <div class="lock-card card-glass">
       <div class="lock-header">
         <div class="lock-icon">
-          <i class="fa-solid fa-lock"></i>
+          <i class="fa-brands fa-google"></i>
         </div>
         <h2>MixFlow</h2>
         <p>學生小考成績登記系統</p>
       </div>
       <form id="lockForm">
-        <div class="form-group">
-          <label for="passwordInput">請輸入解鎖密碼</label>
-          <div class="input-with-icon">
-            <i class="fa-solid fa-key"></i>
-            <input type="password" id="passwordInput" placeholder="輸入密碼" required autocomplete="current-password">
-          </div>
-        </div>
         <button type="submit" class="primary-btn full-width-btn">
-          <i class="fa-solid fa-unlock"></i> 驗證解鎖
+          <i class="fa-brands fa-google"></i> 使用教師 Google 帳號登入
         </button>
-        <p id="lockErrorMsg" class="error-text hidden">密碼錯誤，請重新輸入！</p>
+        <p id="lockErrorMsg" class="error-text hidden">此 Google 帳號沒有教師權限。</p>
       </form>
     </div>
   </div>
@@ -70,7 +63,7 @@
         <button id="refreshBtn" class="action-btn" title="同步資料">
           <i class="fa-solid fa-rotate"></i>
         </button>
-        <button id="logoutBtn" class="action-btn text-expense hidden" title="鎖定系統">
+        <button id="logoutBtn" class="action-btn text-expense hidden" title="登出教師帳號">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>

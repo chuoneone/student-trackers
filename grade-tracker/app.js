@@ -1,11 +1,17 @@
 // 學生小考成績登記系統 前端邏輯
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
+  getAuth,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut
+} from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+import {
   addDoc,
   collection,
   deleteDoc,
   doc,
-  getDoc,
   getDocs,
   getFirestore
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -21,6 +27,9 @@ const firebaseConfig = {
 
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
+const auth = getAuth(firebaseApp);
+const teacherProvider = new GoogleAuthProvider();
+const TEACHER_EMAIL = "pppchin7@gmail.com";
 
 // 全局狀態
 let allStudents = [];
@@ -33,7 +42,6 @@ let distChartInstance = null;
 // DOM 元素 - 解鎖畫面
 const lockScreen = document.getElementById("lockScreen");
 const lockForm = document.getElementById("lockForm");
-const passwordInput = document.getElementById("passwordInput");
 const lockErrorMsg = document.getElementById("lockErrorMsg");
 const lockCard = document.querySelector(".lock-card");
 
@@ -128,60 +136,55 @@ function updateThemeIcon(theme) {
 
 // 驗證與登入處理
 function checkAuth() {
-  sessionStorage.setItem("system_password", "chuone");
-  sessionStorage.setItem("system_unlocked", "true");
-  
-  lockScreen.classList.add("hidden");
-  mainApp.classList.remove("hidden");
-  fetchData();
+  onAuthStateChanged(auth, async user => {
+    const isTeacher = user?.email === TEACHER_EMAIL;
+    lockScreen.classList.toggle("hidden", isTeacher);
+    mainApp.classList.toggle("hidden", !isTeacher);
+    logoutBtn.classList.toggle("hidden", !isTeacher);
+
+    if (user && !isTeacher) {
+      await signOut(auth);
+      showAuthError("此 Google 帳號沒有教師權限。");
+      return;
+    }
+
+    if (isTeacher) {
+      await fetchData();
+    }
+  });
 }
 
-// 密碼驗證解鎖
 async function handleUnlock(e) {
   e.preventDefault();
-  const enteredPassword = passwordInput.value;
-  
-  showToast("正在驗證密碼...", "info");
+  showToast("正在開啟 Google 教師登入...", "info");
   lockErrorMsg.classList.add("hidden");
   
   try {
-    const settingsSnap = await getDoc(doc(db, "config", "settings"));
-    const correctPassword = settingsSnap.exists() ? settingsSnap.data().password || "chuone" : "chuone";
-
-    if (enteredPassword === correctPassword) {
-      sessionStorage.setItem("system_password", enteredPassword);
-      sessionStorage.setItem("system_unlocked", "true");
-
-      lockScreen.classList.add("hidden");
-      mainApp.classList.remove("hidden");
-      showToast("解鎖成功", "success");
-
-      await fetchData();
-    } else {
-      throw new Error("密碼錯誤");
+    const result = await signInWithPopup(auth, teacherProvider);
+    if (result.user.email !== TEACHER_EMAIL) {
+      await signOut(auth);
+      throw new Error("此 Google 帳號沒有教師權限。");
     }
+    showToast("教師登入成功", "success");
   } catch (error) {
     console.error(error);
-    const displayMsg = error.message === "密碼錯誤" ? "密碼錯誤，請重新輸入！" : `連線失敗: ${error.message}`;
-    showToast(displayMsg, "error");
-    
-    // 錯誤動畫與抖動
-    lockCard.classList.add("shake");
-    lockErrorMsg.textContent = displayMsg;
-    lockErrorMsg.classList.remove("hidden");
-    passwordInput.select();
-    
-    setTimeout(() => {
-      lockCard.classList.remove("shake");
-    }, 500);
+    if (error.code !== "auth/popup-closed-by-user") {
+      showAuthError(error.message || "Google 登入失敗");
+    }
   }
 }
 
-function handleLock() {
-  sessionStorage.removeItem("system_unlocked");
-  sessionStorage.removeItem("system_password");
-  checkAuth();
-  showToast("系統已鎖定", "info");
+function showAuthError(message) {
+  showToast(message, "error");
+  lockCard.classList.add("shake");
+  lockErrorMsg.textContent = message;
+  lockErrorMsg.classList.remove("hidden");
+  setTimeout(() => lockCard.classList.remove("shake"), 500);
+}
+
+async function handleLock() {
+  await signOut(auth);
+  showToast("已登出教師帳號", "info");
 }
 
 // 切換年級標籤
