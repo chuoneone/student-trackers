@@ -209,6 +209,50 @@ function showRecordModal(show, studentName = "") {
 }
 
 // 同步獲取資料庫資料
+function parseRecordDate(value) {
+  if (!value) return null;
+  if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+
+  const text = String(value).trim();
+  const dateOnlyMatch = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch;
+    return new Date(Number(year), Number(month) - 1, Number(day));
+  }
+
+  const parsed = new Date(text);
+  return isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function getDateKey(value) {
+  const date = parseRecordDate(value);
+  if (!date) return String(value || "");
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatRecordDate(value, includeYear = true) {
+  const date = parseRecordDate(value);
+  if (!date) return String(value || "");
+
+  return new Intl.DateTimeFormat("zh-TW", {
+    ...(includeYear ? { year: "numeric" } : {}),
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
+
+function formatSubject(value) {
+  const text = String(value || "");
+  const looksLikeDate = /^\d{4}-\d{1,2}-\d{1,2}/.test(text)
+    || /^[A-Z][a-z]{2} [A-Z][a-z]{2} \d{1,2} \d{4} .*GMT[+-]\d{4}/.test(text);
+
+  return looksLikeDate && parseRecordDate(text) ? formatRecordDate(text) : text;
+}
+
 async function fetchData() {
   const password = sessionStorage.getItem("system_password");
   if (!password) {
@@ -325,9 +369,9 @@ function renderPersonalHistory(studentName) {
 
       li.innerHTML = `
         <div class="personal-history-meta">
-          <div class="personal-history-title">${escapeHTML(r.subject)}</div>
+          <div class="personal-history-title">${escapeHTML(formatSubject(r.subject))}</div>
           <div class="personal-history-sub">
-            <span><i class="fa-regular fa-calendar"></i> ${r.date}</span>
+            <span><i class="fa-regular fa-calendar"></i> ${formatRecordDate(r.date)}</span>
             ${r.note ? `<span title="${escapeHTML(r.note)}"><i class="fa-regular fa-comment"></i> ${escapeHTML(r.note)}</span>` : ""}
           </div>
         </div>
@@ -341,7 +385,7 @@ function renderPersonalHistory(studentName) {
 
       li.querySelector(".delete-record-btn").addEventListener("click", async (e) => {
         const id = e.currentTarget.getAttribute("data-id");
-        if (confirm(`確定要刪除該筆「${r.subject}」的成績嗎？`)) {
+        if (confirm(`確定要刪除該筆「${formatSubject(r.subject)}」的成績嗎？`)) {
           await handleDeleteGradeRecord(id, studentName);
         }
       });
@@ -386,9 +430,9 @@ function renderHistory() {
           <div class="history-details">
             <h4>
               ${r.name} 
-              <span class="student-status-label ${scoreStyle}" style="font-size:0.65rem; padding:1px 6px">${escapeHTML(r.subject)}</span>
+              <span class="student-status-label ${scoreStyle}" style="font-size:0.65rem; padding:1px 6px">${escapeHTML(formatSubject(r.subject))}</span>
             </h4>
-            <div class="history-time"><i class="fa-regular fa-calendar"></i> ${r.date}</div>
+            <div class="history-time"><i class="fa-regular fa-calendar"></i> ${formatRecordDate(r.date)}</div>
             ${r.note ? `<div class="history-note"><i class="fa-regular fa-comment"></i> ${escapeHTML(r.note)}</div>` : ""}
           </div>
         </div>
@@ -401,7 +445,7 @@ function renderHistory() {
 
       li.querySelector(".delete-record-btn").addEventListener("click", async (e) => {
         const id = e.currentTarget.getAttribute("data-id");
-        if (confirm(`確定要刪除 ${r.name} 的「${r.subject}」小考成績嗎？`)) {
+        if (confirm(`確定要刪除 ${r.name} 的「${formatSubject(r.subject)}」小考成績嗎？`)) {
           await handleDeleteGradeRecord(id);
         }
       });
@@ -456,15 +500,9 @@ async function handleRecordSubmit(e) {
 
     if (result.status === "success") {
       showToast("成績登記成功", "success");
-      
-      // 更新資料，並刷新 Modal 的歷史和外部卡片
-      await fetchData(); 
-      renderPersonalHistory(name);
-      
-      // 重置輸入表單
-      gradeSubject.value = "";
-      gradeScore.value = "";
-      noteInput.value = "";
+
+      showRecordModal(false);
+      await fetchData();
     } else if (result.message === "Unauthorized") {
       showToast("登入已逾期，請重新解鎖", "error");
       handleLock();
@@ -548,11 +586,11 @@ function renderTrendChart() {
     trendChartInstance = null;
   }
 
-  const currentSummary = gradeSummary[currentGrade];
-  const subjectStats = (currentSummary && currentSummary.subjectStats) || {};
-  const total = (currentSummary && currentSummary.total) || 0;
+  const gradeRecords = allRecords
+    .filter(r => r.grade === currentGrade && parseRecordDate(r.date))
+    .sort((a, b) => parseRecordDate(a.date) - parseRecordDate(b.date));
 
-  if (total === 0 || Object.keys(subjectStats).length === 0) {
+  if (gradeRecords.length === 0) {
     noTrendChartData.classList.remove("hidden");
     document.getElementById("gradeTrendChart").style.display = "none";
     return;
@@ -562,43 +600,48 @@ function renderTrendChart() {
   const chartCanvas = document.getElementById("gradeTrendChart");
   chartCanvas.style.display = "block";
 
-  // 我們按考試記錄的時間排序科目，讓走勢圖從左到右有順序
-  // 找出所有記錄並按日期升序，取得唯一的科目名單
-  const subjectsInOrder = [];
-  const sortedRecords = [...allRecords]
-    .filter(r => r.grade === currentGrade)
-    .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-  sortedRecords.forEach(r => {
-    if (!subjectsInOrder.includes(r.subject)) {
-      subjectsInOrder.push(r.subject);
-    }
-  });
-
-  const labels = subjectsInOrder;
-  const datasetValues = labels.map(sub => (subjectStats[sub] && subjectStats[sub].avg) || 0);
-
   const currentTheme = document.documentElement.getAttribute("data-theme");
   const textColor = currentTheme === "light" ? "#1e293b" : "#f3f4f6";
-  const lineColor = currentTheme === "light" ? "#7c3aed" : "#a855f7";
   const gridColor = currentTheme === "light" ? "rgba(0,0,0,0.06)" : "rgba(255,255,255,0.06)";
+  const palette = ["#7c3aed", "#059669", "#2563eb", "#d97706", "#e11d48", "#0891b2", "#9333ea", "#4f46e5"];
+
+  const dates = [...new Set(gradeRecords.map(r => getDateKey(r.date)))];
+  const students = [...new Set(gradeRecords.map(r => r.name))];
+  const scoresByStudentAndDate = new Map();
+
+  gradeRecords.forEach(record => {
+    const key = `${record.name}\u0000${getDateKey(record.date)}`;
+    const scores = scoresByStudentAndDate.get(key) || [];
+    scores.push(Number(record.score));
+    scoresByStudentAndDate.set(key, scores);
+  });
+
+  const datasets = students.map((studentName, index) => {
+    const color = palette[index % palette.length];
+    return {
+      label: studentName,
+      data: dates.map(date => {
+        const scores = scoresByStudentAndDate.get(`${studentName}\u0000${date}`);
+        if (!scores || scores.length === 0) return null;
+        return Number((scores.reduce((sum, score) => sum + score, 0) / scores.length).toFixed(1));
+      }),
+      borderColor: color,
+      backgroundColor: color,
+      borderWidth: 2.5,
+      pointBackgroundColor: color,
+      pointBorderColor: "#ffffff",
+      pointHoverRadius: 6,
+      spanGaps: true,
+      fill: false,
+      tension: 0.25
+    };
+  });
 
   trendChartInstance = new Chart(chartCanvas, {
     type: "line",
     data: {
-      labels: labels,
-      datasets: [{
-        label: "班級平均分數",
-        data: datasetValues,
-        borderColor: lineColor,
-        backgroundColor: `${lineColor}22`,
-        borderWidth: 3,
-        pointBackgroundColor: lineColor,
-        pointBorderColor: "#ffffff",
-        pointHoverRadius: 6,
-        fill: true,
-        tension: 0.3
-      }]
+      labels: dates.map(date => formatRecordDate(date, false)),
+      datasets: datasets
     },
     options: {
       responsive: true,
@@ -616,11 +659,17 @@ function renderTrendChart() {
         }
       },
       plugins: {
-        legend: { display: false },
+        legend: {
+          display: true,
+          labels: { color: textColor, usePointStyle: true, boxWidth: 8 }
+        },
         tooltip: {
           callbacks: {
+            title: function(items) {
+              return formatRecordDate(dates[items[0].dataIndex]);
+            },
             label: function(context) {
-              return ` 班級均分: ${context.raw} 分`;
+              return ` ${context.dataset.label}: ${context.raw} 分`;
             }
           }
         }
