@@ -45,7 +45,30 @@ service cloud.firestore {
     }
 
     match /gradeRecords/{recordId} {
-      allow read, write: if isTeacher();
+      allow read, delete: if request.auth != null;
+      allow create: if request.auth != null
+        && request.resource.data.keys().hasOnly([
+          "grade", "name", "date", "subject", "score", "note", "timestamp"
+        ])
+        && request.resource.data.grade is string
+        && request.resource.data.grade.size() > 0
+        && request.resource.data.grade.size() <= 20
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 50
+        && request.resource.data.date is string
+        && request.resource.data.date.size() == 10
+        && request.resource.data.subject is string
+        && request.resource.data.subject.size() > 0
+        && request.resource.data.subject.size() <= 100
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 100
+        && request.resource.data.note is string
+        && request.resource.data.note.size() <= 500
+        && request.resource.data.timestamp is string
+        && request.resource.data.timestamp.size() <= 40;
+      allow update: if false;
     }
 
     match /config/{document=**} {

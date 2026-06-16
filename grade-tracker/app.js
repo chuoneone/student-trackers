@@ -2,10 +2,8 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import {
   getAuth,
-  GoogleAuthProvider,
   onAuthStateChanged,
-  signInWithPopup,
-  signOut
+  signInAnonymously
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import {
   addDoc,
@@ -28,8 +26,6 @@ const firebaseConfig = {
 const firebaseApp = initializeApp(firebaseConfig);
 const db = getFirestore(firebaseApp);
 const auth = getAuth(firebaseApp);
-const teacherProvider = new GoogleAuthProvider();
-const TEACHER_EMAIL = "pppchin7@gmail.com";
 
 // 全局狀態
 let allStudents = [];
@@ -39,17 +35,10 @@ let currentGrade = "七年級";
 let trendChartInstance = null;
 let distChartInstance = null;
 
-// DOM 元素 - 解鎖畫面
-const lockScreen = document.getElementById("lockScreen");
-const lockForm = document.getElementById("lockForm");
-const lockErrorMsg = document.getElementById("lockErrorMsg");
-const lockCard = document.querySelector(".lock-card");
-
 // DOM 元素 - 主程式
 const mainApp = document.getElementById("mainApp");
 const themeToggleBtn = document.getElementById("themeToggleBtn");
 const refreshBtn = document.getElementById("refreshBtn");
-const logoutBtn = document.getElementById("logoutBtn");
 
 const studentsGrid = document.getElementById("studentsGrid");
 const studentCountBadge = document.getElementById("studentCountBadge");
@@ -79,12 +68,6 @@ const noPersonalHistory = document.getElementById("noPersonalHistory");
 document.addEventListener("DOMContentLoaded", () => {
   initTheme();
   checkAuth();
-
-  // 綁定解鎖事件
-  lockForm.addEventListener("submit", handleUnlock);
-
-  // 綁定登出
-  logoutBtn.addEventListener("click", handleLock);
 
   // 年級切換
   const tabBtns = document.querySelectorAll(".class-tab-btn");
@@ -136,55 +119,20 @@ function updateThemeIcon(theme) {
 
 // 驗證與登入處理
 function checkAuth() {
+  mainApp.classList.remove("hidden");
   onAuthStateChanged(auth, async user => {
-    const isTeacher = user?.email === TEACHER_EMAIL;
-    lockScreen.classList.toggle("hidden", isTeacher);
-    mainApp.classList.toggle("hidden", !isTeacher);
-    logoutBtn.classList.toggle("hidden", !isTeacher);
-
-    if (user && !isTeacher) {
-      await signOut(auth);
-      showAuthError("此 Google 帳號沒有教師權限。");
+    if (user) {
+      await fetchData();
       return;
     }
 
-    if (isTeacher) {
-      await fetchData();
+    try {
+      await signInAnonymously(auth);
+    } catch (error) {
+      console.error(error);
+      showToast(`匿名連線失敗: ${error.message}`, "error");
     }
   });
-}
-
-async function handleUnlock(e) {
-  e.preventDefault();
-  showToast("正在開啟 Google 教師登入...", "info");
-  lockErrorMsg.classList.add("hidden");
-  
-  try {
-    const result = await signInWithPopup(auth, teacherProvider);
-    if (result.user.email !== TEACHER_EMAIL) {
-      await signOut(auth);
-      throw new Error("此 Google 帳號沒有教師權限。");
-    }
-    showToast("教師登入成功", "success");
-  } catch (error) {
-    console.error(error);
-    if (error.code !== "auth/popup-closed-by-user") {
-      showAuthError(error.message || "Google 登入失敗");
-    }
-  }
-}
-
-function showAuthError(message) {
-  showToast(message, "error");
-  lockCard.classList.add("shake");
-  lockErrorMsg.textContent = message;
-  lockErrorMsg.classList.remove("hidden");
-  setTimeout(() => lockCard.classList.remove("shake"), 500);
-}
-
-async function handleLock() {
-  await signOut(auth);
-  showToast("已登出教師帳號", "info");
 }
 
 // 切換年級標籤

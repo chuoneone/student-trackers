@@ -24,27 +24,8 @@
     <div class="circle circle-3"></div>
   </div>
 
-  <!-- Teacher Google Sign-In Screen -->
-  <div id="lockScreen" class="lock-screen-overlay">
-    <div class="lock-card card-glass">
-      <div class="lock-header">
-        <div class="lock-icon">
-          <i class="fa-brands fa-google"></i>
-        </div>
-        <h2>MixFlow</h2>
-        <p>學生小考成績登記系統</p>
-      </div>
-      <form id="lockForm">
-        <button type="submit" class="primary-btn full-width-btn">
-          <i class="fa-brands fa-google"></i> 使用教師 Google 帳號登入
-        </button>
-        <p id="lockErrorMsg" class="error-text hidden">此 Google 帳號沒有教師權限。</p>
-      </form>
-    </div>
-  </div>
-
-  <!-- Main System App (Hidden by default) -->
-  <div id="mainApp" class="app-container hidden">
+  <!-- Main System App -->
+  <div id="mainApp" class="app-container">
     <!-- Header -->
     <header class="app-header">
       <div class="brand">
@@ -62,9 +43,6 @@
         </button>
         <button id="refreshBtn" class="action-btn" title="同步資料">
           <i class="fa-solid fa-rotate"></i>
-        </button>
-        <button id="logoutBtn" class="action-btn text-expense hidden" title="登出教師帳號">
-          <i class="fa-solid fa-right-from-bracket"></i>
         </button>
       </div>
     </header>
