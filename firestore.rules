@@ -31,7 +31,8 @@ service cloud.firestore {
         && request.resource.data.name.size() > 0
         && request.resource.data.name.size() <= 50
         && request.resource.data.grade is string
-        && request.resource.data.grade in ["七年級", "八年級"]
+        && request.resource.data.grade.size() > 0
+        && request.resource.data.grade.size() <= 20
         && request.resource.data.date is string
         && request.resource.data.date.size() == 10
         && request.resource.data.emotion is string
