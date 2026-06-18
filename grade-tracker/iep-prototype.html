@@ -1,0 +1,1221 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IEP 目標追蹤原型 - 徐文彥</title>
+  <style>
+    :root {
+      --bg: #f4f7fb;
+      --panel: #ffffff;
+      --panel-soft: #f8fafc;
+      --line: #dbe3ee;
+      --line-strong: #c3cfdf;
+      --text: #172033;
+      --muted: #637083;
+      --blue: #2563eb;
+      --blue-soft: #e8f0ff;
+      --green: #079669;
+      --green-soft: #def7ec;
+      --amber: #b7791f;
+      --amber-soft: #fff3d6;
+      --red: #dc2626;
+      --red-soft: #fee2e2;
+      --violet: #7c3aed;
+      --violet-soft: #f0e7ff;
+      --shadow: 0 18px 45px rgba(30, 41, 59, 0.08);
+      --radius: 8px;
+      --font: "Noto Sans TC", "Microsoft JhengHei", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background:
+        linear-gradient(120deg, rgba(37, 99, 235, 0.08), transparent 32%),
+        linear-gradient(210deg, rgba(16, 185, 129, 0.1), transparent 36%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      line-height: 1.55;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1440px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 24px 0 36px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+
+    .title-block h1 {
+      margin: 0;
+      font-size: clamp(1.45rem, 2.4vw, 2.2rem);
+      letter-spacing: 0;
+    }
+
+    .title-block p {
+      margin: 4px 0 0;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--text);
+      min-height: 38px;
+      padding: 0 13px;
+      border-radius: 7px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 0.88rem;
+      box-shadow: 0 6px 16px rgba(30, 41, 59, 0.06);
+    }
+
+    .btn:hover {
+      border-color: var(--line-strong);
+      background: #fdfefe;
+    }
+
+    .btn-primary {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #ffffff;
+    }
+
+    .btn-primary:hover {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 300px minmax(0, 1fr) 340px;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.92);
+      border: 1px solid rgba(219, 227, 238, 0.95);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+    }
+
+    .panel-pad {
+      padding: 16px;
+    }
+
+    .section-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .section-title h2,
+    .section-title h3 {
+      margin: 0;
+      font-size: 1rem;
+    }
+
+    .mini {
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .student-card {
+      display: grid;
+      gap: 14px;
+    }
+
+    .avatar-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .avatar {
+      width: 54px;
+      height: 54px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: var(--blue-soft);
+      color: var(--blue);
+      font-weight: 900;
+      font-size: 1.1rem;
+    }
+
+    .student-name {
+      font-size: 1.2rem;
+      font-weight: 900;
+    }
+
+    .meta-grid {
+      display: grid;
+      gap: 8px;
+    }
+
+    .meta-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 0.88rem;
+    }
+
+    .meta-item:last-child {
+      border-bottom: 0;
+    }
+
+    .meta-label {
+      color: var(--muted);
+    }
+
+    .meta-value {
+      font-weight: 800;
+      text-align: right;
+    }
+
+    .need-list,
+    .legend-list {
+      display: grid;
+      gap: 8px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .need-list li,
+    .legend-list li {
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      border-radius: 7px;
+      padding: 9px 10px;
+      font-size: 0.84rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      border: 1px solid transparent;
+      background: transparent;
+      border-radius: 7px;
+      padding: 8px 12px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 0.88rem;
+    }
+
+    .tab.active {
+      background: var(--text);
+      color: #ffffff;
+    }
+
+    .summary-strip {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      padding: 13px;
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      min-height: 88px;
+    }
+
+    .metric b {
+      display: block;
+      font-size: 1.45rem;
+      line-height: 1.1;
+    }
+
+    .metric span {
+      display: block;
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .workspace {
+      display: grid;
+      gap: 14px;
+    }
+
+    .goal-list {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .goal-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      padding: 13px;
+      min-height: 178px;
+      display: grid;
+      gap: 10px;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+    }
+
+    .goal-card:hover,
+    .goal-card.active {
+      border-color: rgba(37, 99, 235, 0.55);
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .goal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .goal-code {
+      font-weight: 900;
+      color: var(--blue);
+    }
+
+    .goal-text {
+      font-size: 0.92rem;
+      font-weight: 700;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      min-height: 24px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: var(--panel-soft);
+      border: 1px solid var(--line);
+      color: var(--muted);
+    }
+
+    .chip.green {
+      background: var(--green-soft);
+      color: var(--green);
+      border-color: rgba(7, 150, 105, 0.24);
+    }
+
+    .chip.blue {
+      background: var(--blue-soft);
+      color: var(--blue);
+      border-color: rgba(37, 99, 235, 0.22);
+    }
+
+    .chip.amber {
+      background: var(--amber-soft);
+      color: var(--amber);
+      border-color: rgba(183, 121, 31, 0.22);
+    }
+
+    .chip.violet {
+      background: var(--violet-soft);
+      color: var(--violet);
+      border-color: rgba(124, 58, 237, 0.22);
+    }
+
+    .progress-row {
+      display: grid;
+      gap: 7px;
+    }
+
+    .progress-line {
+      height: 8px;
+      background: #e5edf7;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: var(--value);
+      background: linear-gradient(90deg, var(--blue), var(--green));
+      border-radius: inherit;
+    }
+
+    .progress-meta {
+      display: flex;
+      justify-content: space-between;
+      color: var(--muted);
+      font-size: 0.76rem;
+      font-weight: 700;
+    }
+
+    .record-form {
+      display: grid;
+      gap: 12px;
+    }
+
+    .field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .field label {
+      color: var(--text);
+      font-weight: 800;
+      font-size: 0.82rem;
+    }
+
+    .field input,
+    .field select,
+    .field textarea {
+      width: 100%;
+      border: 1px solid var(--line-strong);
+      border-radius: 7px;
+      min-height: 40px;
+      padding: 8px 10px;
+      background: #ffffff;
+      color: var(--text);
+      outline: none;
+    }
+
+    .field textarea {
+      min-height: 82px;
+      resize: vertical;
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .support-picker {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+    }
+
+    .support-option {
+      position: relative;
+    }
+
+    .support-option input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+    }
+
+    .support-option span {
+      display: grid;
+      place-items: center;
+      min-height: 38px;
+      border-radius: 7px;
+      border: 1px solid var(--line);
+      background: var(--panel-soft);
+      color: var(--muted);
+      font-size: 0.78rem;
+      font-weight: 900;
+    }
+
+    .support-option input:checked + span {
+      background: var(--blue);
+      border-color: var(--blue);
+      color: #ffffff;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(280px, 0.8fr);
+      gap: 14px;
+    }
+
+    .timeline {
+      display: grid;
+      gap: 10px;
+    }
+
+    .record-card {
+      display: grid;
+      gap: 8px;
+      border: 1px solid var(--line);
+      background: var(--panel);
+      border-radius: var(--radius);
+      padding: 12px;
+    }
+
+    .record-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: flex-start;
+    }
+
+    .record-title {
+      font-weight: 900;
+    }
+
+    .score-pill {
+      min-width: 54px;
+      text-align: center;
+      border-radius: 999px;
+      background: var(--green-soft);
+      color: var(--green);
+      padding: 3px 10px;
+      font-weight: 900;
+    }
+
+    .record-note {
+      color: var(--muted);
+      font-size: 0.86rem;
+    }
+
+    .report-box {
+      background: #101827;
+      color: #e5edf7;
+      border-radius: var(--radius);
+      padding: 14px;
+      min-height: 210px;
+      white-space: pre-wrap;
+      font-size: 0.88rem;
+    }
+
+    .empty {
+      border: 1px dashed var(--line-strong);
+      border-radius: var(--radius);
+      padding: 22px;
+      text-align: center;
+      color: var(--muted);
+      background: var(--panel-soft);
+      font-weight: 700;
+    }
+
+    .toast {
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      background: var(--text);
+      color: #ffffff;
+      border-radius: 7px;
+      padding: 10px 14px;
+      box-shadow: var(--shadow);
+      transform: translateY(18px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      font-weight: 800;
+      font-size: 0.86rem;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    @media (max-width: 1180px) {
+      .layout {
+        grid-template-columns: 280px minmax(0, 1fr);
+      }
+
+      .side-right {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .app {
+        width: min(100% - 20px, 720px);
+        padding-top: 14px;
+      }
+
+      .topbar,
+      .layout,
+      .detail-grid {
+        grid-template-columns: 1fr;
+        display: grid;
+      }
+
+      .top-actions {
+        justify-content: stretch;
+      }
+
+      .top-actions .btn {
+        flex: 1;
+        justify-content: center;
+      }
+
+      .summary-strip,
+      .goal-list,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .support-picker {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="title-block">
+        <h1>IEP 目標追蹤原型</h1>
+        <p>本機試作版：把每次小考、觀察與學習表現連到學生的 IEP 目標。</p>
+      </div>
+      <div class="top-actions">
+        <button class="btn" id="resetBtn" type="button">重置範例資料</button>
+        <button class="btn btn-primary" id="copyReportBtn" type="button">複製摘要</button>
+      </div>
+    </header>
+
+    <section class="layout">
+      <aside class="panel panel-pad">
+        <div class="student-card">
+          <div class="avatar-row">
+            <div class="avatar">徐</div>
+            <div>
+              <div class="student-name">徐文彥</div>
+              <div class="mini">八年仁班 · 學習障礙識字型</div>
+            </div>
+          </div>
+
+          <div class="meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">服務型態</span>
+              <span class="meta-value">普通班接受特教服務</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">主要領域</span>
+              <span class="meta-value">數學 / 學習策略</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">學年度</span>
+              <span class="meta-value">114 學年度</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">授課教師</span>
+              <span class="meta-value">朱旆誼</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <h3>追蹤重點</h3>
+            </div>
+            <ul class="need-list">
+              <li>把小考表現連到明確 IEP 分項目標。</li>
+              <li>同時追蹤分數與支持程度，避免只看成績。</li>
+              <li>累積可直接放進 IEP 會議的證據文字。</li>
+            </ul>
+          </div>
+
+          <div>
+            <div class="section-title">
+              <h3>支持程度</h3>
+            </div>
+            <ul class="legend-list">
+              <li><b>CA</b> 完全協助</li>
+              <li><b>PA</b> 部分肢體協助 / 示範</li>
+              <li><b>OA</b> 口語或姿勢提示</li>
+              <li><b>W</b> 監督</li>
+              <li><b>CI</b> 完全獨立</li>
+            </ul>
+          </div>
+        </div>
+      </aside>
+
+      <section class="workspace">
+        <nav class="panel tabs" aria-label="目標篩選">
+          <button class="tab active" type="button" data-filter="all">全部</button>
+          <button class="tab" type="button" data-filter="math">數學</button>
+          <button class="tab" type="button" data-filter="strategy">學習策略</button>
+          <button class="tab" type="button" data-filter="semester2">第二學期</button>
+        </nav>
+
+        <div class="summary-strip" id="summaryStrip"></div>
+
+        <section class="panel panel-pad">
+          <div class="section-title">
+            <h2>IEP 目標清單</h2>
+            <span class="mini" id="goalCount"></span>
+          </div>
+          <div class="goal-list" id="goalList"></div>
+        </section>
+
+        <section class="detail-grid">
+          <div class="panel panel-pad">
+            <div class="section-title">
+              <h2>目標證據時間線</h2>
+              <span class="mini" id="selectedGoalLabel"></span>
+            </div>
+            <div class="timeline" id="timeline"></div>
+          </div>
+
+          <div class="panel panel-pad">
+            <div class="section-title">
+              <h2>會議摘要草稿</h2>
+            </div>
+            <div class="report-box" id="reportBox"></div>
+          </div>
+        </section>
+      </section>
+
+      <aside class="panel panel-pad side-right">
+        <div class="section-title">
+          <h2>新增觀察 / 評量紀錄</h2>
+        </div>
+        <form class="record-form" id="recordForm">
+          <div class="field">
+            <label for="goalSelect">對應 IEP 目標</label>
+            <select id="goalSelect" required></select>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="recordDate">日期</label>
+              <input id="recordDate" type="date" required>
+            </div>
+            <div class="field">
+              <label for="recordScore">分數 / 達成率</label>
+              <input id="recordScore" type="number" min="0" max="100" step="1" value="80" required>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="recordTitle">評量內容</label>
+            <input id="recordTitle" type="text" value="課堂練習" maxlength="32" required>
+          </div>
+
+          <div class="field">
+            <label>支持程度</label>
+            <div class="support-picker">
+              <label class="support-option"><input type="radio" name="support" value="CA"><span>CA</span></label>
+              <label class="support-option"><input type="radio" name="support" value="PA"><span>PA</span></label>
+              <label class="support-option"><input type="radio" name="support" value="OA" checked><span>OA</span></label>
+              <label class="support-option"><input type="radio" name="support" value="W"><span>W</span></label>
+              <label class="support-option"><input type="radio" name="support" value="CI"><span>CI</span></label>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="methodSelect">評量方式</label>
+              <select id="methodSelect">
+                <option value="紙">紙筆測驗</option>
+                <option value="口">口語問答</option>
+                <option value="實">實作評量</option>
+                <option value="觀">觀察評量</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="resultSelect">標準 / 結果</label>
+              <select id="resultSelect">
+                <option value="A">A 80-100%</option>
+                <option value="B" selected>B 60-80%</option>
+                <option value="C">C 40-60%</option>
+                <option value="D">D 20-40%</option>
+                <option value="E">E 0-20%</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="recordNote">證據備註</label>
+            <textarea id="recordNote">能在提示後完成主要步驟，錯誤多集中在計算檢核。</textarea>
+          </div>
+
+          <button class="btn btn-primary" type="submit">加入紀錄</button>
+        </form>
+      </aside>
+    </section>
+  </main>
+
+  <div class="toast" id="toast">已更新</div>
+
+  <script>
+    const supportRank = { CA: 1, PA: 2, OA: 3, W: 4, CI: 5 };
+    const supportLabel = {
+      CA: "完全協助",
+      PA: "部分協助/示範",
+      OA: "口語或姿勢提示",
+      W: "監督",
+      CI: "完全獨立"
+    };
+
+    const goals = [
+      {
+        id: "math-1-1",
+        code: "1-1",
+        domain: "math",
+        semester: "semester1",
+        area: "乘法公式",
+        text: "在引導下，能應用乘法公式（和的平方、差的平方、平方差）進行計算。",
+        period: "114/09 至 115/01",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "math-1-2",
+        code: "1-2",
+        domain: "math",
+        semester: "semester1",
+        area: "多項式運算",
+        text: "在引導下，能進行多項式的加、減、乘、除四則運算。",
+        period: "114/09 至 115/01",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "math-2-1",
+        code: "2-1",
+        domain: "math",
+        semester: "semester1",
+        area: "平方根與根式",
+        text: "在引導下，能理解平方根的意義，並進行根式的四則運算與化簡。",
+        period: "114/09 至 115/01",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "math-4-1",
+        code: "4-1",
+        domain: "math",
+        semester: "semester1",
+        area: "一元二次方程式",
+        text: "在引導下，能利用因式分解法求解一元二次方程式。",
+        period: "114/09 至 115/01",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "math-6-1",
+        code: "6-1",
+        domain: "math",
+        semester: "semester2",
+        area: "等差數列",
+        text: "在引導下，能判別等差數列，並計算其項與級數和。",
+        period: "115/02 至 115/06",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "math-8-3",
+        code: "8-3",
+        domain: "math",
+        semester: "semester2",
+        area: "三角形全等",
+        text: "在引導下，能應用 SSS、SAS、AAS、RHS 等性質判斷三角形是否全等。",
+        period: "115/02 至 115/06",
+        target: "B",
+        originalResult: "B"
+      },
+      {
+        id: "strategy-1-1",
+        code: "1-1",
+        domain: "strategy",
+        semester: "semester1",
+        area: "解題流程",
+        text: "在引導下，能練習圈出應用題的關鍵字與數字，並口頭說出題目要求的是什麼。",
+        period: "114/09 至 115/01",
+        target: "A",
+        originalResult: "A"
+      },
+      {
+        id: "strategy-1-4",
+        code: "1-4",
+        domain: "strategy",
+        semester: "semester2",
+        area: "五步驟解題流程",
+        text: "在引導下，能依循「讀題、找關鍵、訂計畫、計算、驗算」的五步驟流程，解題國二程度的應用題。",
+        period: "115/02 至 115/06",
+        target: "A",
+        originalResult: ""
+      },
+      {
+        id: "strategy-3-3",
+        code: "3-3",
+        domain: "strategy",
+        semester: "semester2",
+        area: "防錯檢查表",
+        text: "在引導下，能製作個人化的防錯檢查表，並在練習時使用。",
+        period: "115/02 至 115/06",
+        target: "A",
+        originalResult: ""
+      },
+      {
+        id: "strategy-3-4",
+        code: "3-4",
+        domain: "strategy",
+        semester: "semester2",
+        area: "錯誤歸因與訂正",
+        text: "在引導下，能針對錯誤題目說出錯誤步驟是看錯、算錯或想錯，並進行訂正。",
+        period: "115/02 至 115/06",
+        target: "A",
+        originalResult: ""
+      }
+    ];
+
+    const seedRecords = [
+      {
+        id: "r1",
+        goalId: "math-1-1",
+        date: "2025-10-15",
+        title: "乘法公式小考",
+        score: 68,
+        support: "OA",
+        method: "紙",
+        result: "B",
+        note: "能完成平方差公式，和的平方仍需口語提醒展開順序。"
+      },
+      {
+        id: "r2",
+        goalId: "math-1-1",
+        date: "2025-11-20",
+        title: "乘法公式複習",
+        score: 76,
+        support: "W",
+        method: "紙",
+        result: "B",
+        note: "在監督下可自行檢查符號，錯誤次數較前次下降。"
+      },
+      {
+        id: "r3",
+        goalId: "strategy-1-1",
+        date: "2025-10-22",
+        title: "應用題讀題練習",
+        score: 84,
+        support: "OA",
+        method: "觀",
+        result: "A",
+        note: "能圈出數字，但題目要求需教師提示後才能說明。"
+      },
+      {
+        id: "r4",
+        goalId: "strategy-1-1",
+        date: "2025-12-05",
+        title: "二步驟應用題",
+        score: 90,
+        support: "W",
+        method: "實",
+        result: "A",
+        note: "能先找關鍵字，再列出兩段算式；需要提醒最後驗算。"
+      },
+      {
+        id: "r5",
+        goalId: "strategy-3-3",
+        date: "2026-03-18",
+        title: "防錯檢查表試用",
+        score: 82,
+        support: "OA",
+        method: "觀",
+        result: "A",
+        note: "能使用檢查表確認抄題和正負號，仍需提示不要跳過驗算。"
+      }
+    ];
+
+    let filter = "all";
+    let selectedGoalId = goals[0].id;
+    let records = loadRecords();
+
+    const $ = (selector) => document.querySelector(selector);
+
+    function loadRecords() {
+      const stored = localStorage.getItem("iepPrototypeRecords");
+      return stored ? JSON.parse(stored) : seedRecords;
+    }
+
+    function saveRecords() {
+      localStorage.setItem("iepPrototypeRecords", JSON.stringify(records));
+    }
+
+    function filteredGoals() {
+      if (filter === "all") return goals;
+      if (filter === "semester2") return goals.filter((goal) => goal.semester === "semester2");
+      return goals.filter((goal) => goal.domain === filter);
+    }
+
+    function goalRecords(goalId) {
+      return records
+        .filter((record) => record.goalId === goalId)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
+    }
+
+    function average(values) {
+      if (!values.length) return 0;
+      return values.reduce((sum, value) => sum + value, 0) / values.length;
+    }
+
+    function goalStats(goalId) {
+      const related = goalRecords(goalId);
+      const avgScore = average(related.map((record) => Number(record.score)));
+      const avgSupport = average(related.map((record) => supportRank[record.support] || 0));
+      const latest = related[0];
+      return {
+        count: related.length,
+        avgScore,
+        avgSupport,
+        latest,
+        progress: Math.max(8, Math.min(100, Math.round(avgScore || 0)))
+      };
+    }
+
+    function domainName(domain) {
+      return domain === "math" ? "數學" : "學習策略";
+    }
+
+    function semesterName(semester) {
+      return semester === "semester1" ? "第一學期" : "第二學期";
+    }
+
+    function renderSummary() {
+      const visibleGoals = filteredGoals();
+      const visibleIds = new Set(visibleGoals.map((goal) => goal.id));
+      const visibleRecords = records.filter((record) => visibleIds.has(record.goalId));
+      const avgScore = Math.round(average(visibleRecords.map((record) => Number(record.score))));
+      const independentLike = visibleRecords.filter((record) => ["W", "CI"].includes(record.support)).length;
+      const achieved = visibleGoals.filter((goal) => {
+        const stats = goalStats(goal.id);
+        return stats.latest && stats.latest.result <= goal.target;
+      }).length;
+
+      $("#summaryStrip").innerHTML = [
+        ["IEP 目標", visibleGoals.length, "目前篩選內的分項目標"],
+        ["證據紀錄", visibleRecords.length, "小考、觀察與課堂表現"],
+        ["平均表現", visibleRecords.length ? `${avgScore}%` : "尚無", "以分數或達成率計算"],
+        ["較獨立紀錄", independentLike, "支持程度為 W 或 CI"]
+      ].map(([label, value, hint]) => `
+        <div class="metric">
+          <b>${value}</b>
+          <span>${label} · ${hint}</span>
+        </div>
+      `).join("");
+    }
+
+    function renderGoalOptions() {
+      $("#goalSelect").innerHTML = goals.map((goal) => `
+        <option value="${goal.id}">${domainName(goal.domain)} ${goal.code}｜${goal.area}</option>
+      `).join("");
+      $("#goalSelect").value = selectedGoalId;
+    }
+
+    function renderGoals() {
+      const visibleGoals = filteredGoals();
+      $("#goalCount").textContent = `${visibleGoals.length} 個目標`;
+      $("#goalList").innerHTML = visibleGoals.map((goal) => {
+        const stats = goalStats(goal.id);
+        const latestText = stats.latest
+          ? `最近 ${stats.latest.score}% · ${stats.latest.support}`
+          : "尚無本機紀錄";
+        return `
+          <article class="goal-card ${goal.id === selectedGoalId ? "active" : ""}" data-goal-id="${goal.id}">
+            <div class="goal-head">
+              <div>
+                <div class="goal-code">${domainName(goal.domain)} ${goal.code}</div>
+                <div class="goal-text">${goal.text}</div>
+              </div>
+              <span class="chip ${goal.domain === "math" ? "blue" : "violet"}">${goal.area}</span>
+            </div>
+            <div class="chips">
+              <span class="chip">${semesterName(goal.semester)}</span>
+              <span class="chip">標準 ${goal.target}</span>
+              <span class="chip green">${goal.period}</span>
+              ${goal.originalResult ? `<span class="chip amber">原表結果 ${goal.originalResult}</span>` : ""}
+            </div>
+            <div class="progress-row">
+              <div class="progress-line"><div class="progress-fill" style="--value: ${stats.progress}%"></div></div>
+              <div class="progress-meta">
+                <span>${latestText}</span>
+                <span>${stats.count} 筆證據</span>
+              </div>
+            </div>
+          </article>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".goal-card").forEach((card) => {
+        card.addEventListener("click", () => {
+          selectedGoalId = card.dataset.goalId;
+          render();
+        });
+      });
+    }
+
+    function renderTimeline() {
+      const goal = goals.find((item) => item.id === selectedGoalId) || goals[0];
+      const related = goalRecords(goal.id);
+      $("#selectedGoalLabel").textContent = `${domainName(goal.domain)} ${goal.code}`;
+      $("#timeline").innerHTML = related.length ? related.map((record) => `
+        <article class="record-card">
+          <div class="record-head">
+            <div>
+              <div class="record-title">${record.title}</div>
+              <div class="mini">${record.date} · ${record.method} · ${supportLabel[record.support]}</div>
+            </div>
+            <div class="score-pill">${record.score}%</div>
+          </div>
+          <div class="chips">
+            <span class="chip blue">支持 ${record.support}</span>
+            <span class="chip green">結果 ${record.result}</span>
+          </div>
+          <div class="record-note">${record.note}</div>
+        </article>
+      `).join("") : `<div class="empty">這個目標還沒有本機紀錄。可以從右側新增一筆觀察或評量。</div>`;
+    }
+
+    function renderReport() {
+      const goal = goals.find((item) => item.id === selectedGoalId) || goals[0];
+      const related = goalRecords(goal.id);
+      if (!related.length) {
+        $("#reportBox").textContent = `目標：${goal.text}\n\n目前尚未建立本機證據紀錄。建議先新增小考、課堂觀察或作業表現，再產生摘要。`;
+        return;
+      }
+
+      const chronological = [...related].sort((a, b) => new Date(a.date) - new Date(b.date));
+      const first = chronological[0];
+      const latest = chronological[chronological.length - 1];
+      const avg = Math.round(average(related.map((record) => Number(record.score))));
+      const supportMove = supportRank[latest.support] > supportRank[first.support]
+        ? `支持程度由 ${first.support}（${supportLabel[first.support]}）進步至 ${latest.support}（${supportLabel[latest.support]}）`
+        : `目前主要支持程度為 ${latest.support}（${supportLabel[latest.support]}）`;
+      const notes = related.slice(0, 2).map((record) => `- ${record.date}：${record.note}`).join("\n");
+
+      $("#reportBox").textContent =
+        `學生徐文彥在「${domainName(goal.domain)} ${goal.code}：${goal.area}」目標上，已累積 ${related.length} 筆證據紀錄。\n\n` +
+        `目標內容：${goal.text}\n\n` +
+        `近期平均表現約 ${avg}%，最新一次為 ${latest.score}%，評量結果為 ${latest.result}。${supportMove}，顯示可從分數與獨立程度兩個面向觀察進展。\n\n` +
+        `可引用證據：\n${notes}\n\n` +
+        `初步判讀：若後續能維持 ${goal.target} 級標準，且支持程度逐步往 W 或 CI 移動，可考慮判定目標穩定達成；若分數達標但仍需 OA 以上提示，建議保留目標並調整教學策略。`;
+    }
+
+    function render() {
+      renderSummary();
+      renderGoalOptions();
+      renderGoals();
+      renderTimeline();
+      renderReport();
+    }
+
+    function showToast(message) {
+      const toast = $("#toast");
+      toast.textContent = message;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 1700);
+    }
+
+    document.querySelectorAll(".tab").forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+        tab.classList.add("active");
+        filter = tab.dataset.filter;
+        const visible = filteredGoals();
+        if (!visible.some((goal) => goal.id === selectedGoalId)) {
+          selectedGoalId = visible[0]?.id || goals[0].id;
+        }
+        render();
+      });
+    });
+
+    $("#recordForm").addEventListener("submit", (event) => {
+      event.preventDefault();
+      const formData = new FormData(event.currentTarget);
+      const support = formData.get("support");
+      const record = {
+        id: `r-${Date.now()}`,
+        goalId: $("#goalSelect").value,
+        date: $("#recordDate").value,
+        title: $("#recordTitle").value.trim(),
+        score: Number($("#recordScore").value),
+        support,
+        method: $("#methodSelect").value,
+        result: $("#resultSelect").value,
+        note: $("#recordNote").value.trim()
+      };
+      records = [record, ...records];
+      selectedGoalId = record.goalId;
+      saveRecords();
+      render();
+      showToast("已加入一筆 IEP 證據紀錄");
+    });
+
+    $("#resetBtn").addEventListener("click", () => {
+      records = seedRecords;
+      saveRecords();
+      selectedGoalId = goals[0].id;
+      render();
+      showToast("已重置為範例資料");
+    });
+
+    $("#copyReportBtn").addEventListener("click", async () => {
+      const text = $("#reportBox").textContent;
+      try {
+        await navigator.clipboard.writeText(text);
+        showToast("摘要已複製");
+      } catch (error) {
+        showToast("瀏覽器未允許複製，請手動選取摘要");
+      }
+    });
+
+    $("#goalSelect").addEventListener("change", (event) => {
+      selectedGoalId = event.target.value;
+      render();
+    });
+
+    $("#recordDate").valueAsDate = new Date();
+    render();
+  </script>
+</body>
+</html>
