@@ -13,7 +13,7 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <!-- Custom Styles -->
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=5">
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png">
 </head>
@@ -59,24 +59,73 @@
       </div>
     </section>
 
-    <!-- Dashboard: Students Grid & Analytics -->
-    <div class="dashboard-grid">
+    <!-- Main Workspace Navigation -->
+    <nav class="main-navigation card-glass">
+      <button class="nav-tab active" data-tab="registration">
+        <i class="fa-solid fa-pen-to-square"></i> 登記成績
+      </button>
+      <button class="nav-tab" data-tab="trend">
+        <i class="fa-solid fa-chart-line"></i> 學生個人進步趨勢
+      </button>
+      <button class="nav-tab" data-tab="roster">
+        <i class="fa-solid fa-users"></i> 學生名單 <span id="studentCountBadge" class="badge">0</span>
+      </button>
+      <button class="nav-tab" data-tab="distribution">
+        <i class="fa-solid fa-chart-bar"></i> 學生個人成績分佈圖
+      </button>
+      <button class="nav-tab" data-tab="history">
+        <i class="fa-solid fa-clock-rotate-left"></i> 全體歷次小考紀錄
+      </button>
+    </nav>
+
+    <!-- Main Workspace Area -->
+    <div class="main-workspace">
       
-      <!-- Left: Student Cards Grid -->
-      <section class="students-section">
-        <div class="section-title-bar">
-          <h3><i class="fa-solid fa-users"></i> 班級學生名單</h3>
-          <span id="studentCountBadge" class="badge">0 位學生</span>
-        </div>
-        <div id="studentsGrid" class="students-grid">
-          <!-- Dynamically populated -->
+      <!-- Page 1: Grade Registration Form -->
+      <section id="page-registration" class="tab-page">
+        <div class="card-glass" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+          <div class="form-group-row">
+            <div class="form-group">
+              <label for="dashDate">日期</label>
+              <input type="date" id="dashDate" required>
+            </div>
+            <div class="form-group" style="flex: 2;">
+              <label for="dashSubject">小考科目 / 單元名稱</label>
+              <div class="input-with-icon">
+                <i class="fa-solid fa-book-open"></i>
+                <input type="text" id="dashSubject" placeholder="例如：數學小考一、5-1單元" required maxlength="20">
+              </div>
+            </div>
+          </div>
+
+          <!-- Student Table -->
+          <div class="batch-table-container">
+            <table class="batch-table">
+              <thead>
+                <tr>
+                  <th style="text-align: left; padding: 0.5rem 0.75rem;">學生姓名</th>
+                  <th style="text-align: left; padding: 0.5rem 0.75rem; width: 100px;">得分</th>
+                  <th style="text-align: left; padding: 0.5rem 0.75rem; width: 280px;">IEP 協助程度 (可複選)</th>
+                  <th style="text-align: left; padding: 0.5rem 0.75rem;">備註</th>
+                </tr>
+              </thead>
+              <tbody id="dashStudentListBody">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="form-actions" style="margin-top: 0.5rem; border-top: 1px solid var(--panel-border); padding-top: 1rem;">
+            <button type="button" id="saveDashBtn" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 0.7rem;">
+              <span id="dashBtnText">儲存成績</span>
+              <span id="dashBtnLoader" class="loader hidden"></span>
+            </button>
+          </div>
         </div>
       </section>
 
-      <!-- Right: Charts & Analysis -->
-      <section class="analytics-section">
-        
-        <!-- Chart 1: Class Quiz Score Trend -->
+      <!-- Page 2: Student Progress Trend -->
+      <section id="page-trend" class="tab-page hidden">
         <div class="card-glass analytics-card">
           <div class="section-header">
             <h3><i class="fa-solid fa-chart-line"></i> 學生個人成績進步趨勢</h3>
@@ -89,8 +138,17 @@
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- Chart 2: Grade Range Distribution -->
+      <!-- Page 3: Student Roster Cards -->
+      <section id="page-roster" class="tab-page hidden">
+        <div id="studentsGrid" class="students-grid">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+
+      <!-- Page 4: Student Grade Range Distribution -->
+      <section id="page-distribution" class="tab-page hidden">
         <div class="card-glass analytics-card">
           <div class="section-header">
             <h3><i class="fa-solid fa-chart-bar"></i> 學生個人成績分佈圖</h3>
@@ -103,8 +161,10 @@
             </div>
           </div>
         </div>
+      </section>
 
-        <!-- History Records -->
+      <!-- Page 5: History Records -->
+      <section id="page-history" class="tab-page hidden">
         <div class="card-glass history-card">
           <div class="section-header">
             <h3><i class="fa-solid fa-clock-rotate-left"></i> 全體歷次小考紀錄</h3>
@@ -123,22 +183,22 @@
             </div>
           </div>
         </div>
-
       </section>
+
     </div>
   </div>
 
   <!-- Record Grade Modal -->
   <div id="recordModal" class="modal-overlay">
-    <div class="modal-card card-glass modal-wide">
+    <div class="modal-card card-glass">
       <div class="modal-header">
-        <h3><i class="fa-solid fa-graduation-cap"></i> 登記與管理小考成績</h3>
+        <h3><i class="fa-solid fa-list-check"></i> 個人小考成績明細</h3>
         <button id="closeRecordModalBtn" class="close-btn">&times;</button>
       </div>
       <div class="modal-body-split">
         
         <!-- Left Pane: Add Score Form -->
-        <form id="recordForm" class="modal-form-pane">
+        <form id="recordForm" class="modal-form-pane hidden">
           <div class="form-group-row">
             <div class="form-group">
               <label>學生姓名</label>
@@ -164,6 +224,19 @@
               <i class="fa-solid fa-star"></i>
               <input type="number" id="gradeScore" placeholder="輸入分數 (0 - 100)" min="0" max="100" required>
             </div>
+          </div>
+
+          <div class="form-group">
+            <label>IEP 協助程度 / 提示層次 (可複選)</label>
+            <div id="supportLevelChips" class="chips-container">
+              <button type="button" class="chip-btn active" data-value="完全獨立">完全獨立</button>
+              <button type="button" class="chip-btn" data-value="口語提示">口語提示</button>
+              <button type="button" class="chip-btn" data-value="視覺提示">視覺提示</button>
+              <button type="button" class="chip-btn" data-value="手勢提示">手勢提示</button>
+              <button type="button" class="chip-btn" data-value="動作示範">動作示範</button>
+              <button type="button" class="chip-btn" data-value="肢體協助">肢體協助</button>
+            </div>
+            <input type="hidden" id="supportLevel" value="完全獨立">
           </div>
 
           <div class="form-group">
@@ -202,6 +275,6 @@
   <div id="toast" class="toast hidden"></div>
 
   <!-- Main Logic -->
-  <script type="module" src="app.js"></script>
+  <script type="module" src="app.js?v=5"></script>
 </body>
 </html>

@@ -48,7 +48,7 @@ service cloud.firestore {
       allow read, delete: if request.auth != null;
       allow create: if request.auth != null
         && request.resource.data.keys().hasOnly([
-          "grade", "name", "date", "subject", "score", "note", "timestamp"
+          "grade", "name", "date", "subject", "score", "note", "timestamp", "supportLevel"
         ])
         && request.resource.data.grade is string
         && request.resource.data.grade.size() > 0
@@ -67,7 +67,14 @@ service cloud.firestore {
         && request.resource.data.note is string
         && request.resource.data.note.size() <= 500
         && request.resource.data.timestamp is string
-        && request.resource.data.timestamp.size() <= 40;
+        && request.resource.data.timestamp.size() <= 40
+        && (
+          !("supportLevel" in request.resource.data.keys())
+          || (
+            request.resource.data.supportLevel is string
+            && request.resource.data.supportLevel.size() <= 100
+          )
+        );
       allow update: if false;
     }
 

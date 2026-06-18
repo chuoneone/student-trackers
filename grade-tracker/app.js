@@ -11,7 +11,8 @@ import {
   deleteDoc,
   doc,
   getDocs,
-  getFirestore
+  getFirestore,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -55,6 +56,7 @@ const recordStudentName = document.getElementById("recordStudentName");
 const recordDate = document.getElementById("recordDate");
 const gradeSubject = document.getElementById("gradeSubject");
 const gradeScore = document.getElementById("gradeScore");
+const supportLevelInput = document.getElementById("supportLevel");
 const noteInput = document.getElementById("recordNote");
 const closeRecordModalBtn = document.getElementById("closeRecordModalBtn");
 const cancelRecordBtn = document.getElementById("cancelRecordBtn");
@@ -63,6 +65,17 @@ const btnText = document.getElementById("btnText");
 const btnLoader = document.getElementById("btnLoader");
 const personalHistoryList = document.getElementById("personalHistoryList");
 const noPersonalHistory = document.getElementById("noPersonalHistory");
+
+// DOM 元素 - 主導覽列與工作區頁面 (SPA Workspace Tabs)
+const navTabs = document.querySelectorAll(".nav-tab");
+const tabPages = document.querySelectorAll(".tab-page");
+
+const dashDate = document.getElementById("dashDate");
+const dashSubject = document.getElementById("dashSubject");
+const dashStudentListBody = document.getElementById("dashStudentListBody");
+const saveDashBtn = document.getElementById("saveDashBtn");
+const dashBtnText = document.getElementById("dashBtnText");
+const dashBtnLoader = document.getElementById("dashBtnLoader");
 
 // 初始化事件監聽
 document.addEventListener("DOMContentLoaded", () => {
@@ -87,6 +100,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // 提交小考成績
   recordForm.addEventListener("submit", handleRecordSubmit);
+
+  // IEP 協助程度多選 Chip 互動邏輯
+  const chipBtns = document.querySelectorAll("#supportLevelChips .chip-btn");
+  const hiddenInput = document.getElementById("supportLevel");
+
+  chipBtns.forEach(btn => {
+    btn.addEventListener("click", () => {
+      const val = btn.getAttribute("data-value");
+      
+      if (val === "完全獨立") {
+        // 點選完全獨立：啟用完全獨立，取消其他所有選項
+        chipBtns.forEach(b => {
+          if (b.getAttribute("data-value") === "完全獨立") {
+            b.classList.add("active");
+          } else {
+            b.classList.remove("active");
+          }
+        });
+      } else {
+        // 點選其他提示層次：切換自身狀態，並取消完全獨立
+        btn.classList.toggle("active");
+        const independentBtn = document.querySelector('#supportLevelChips .chip-btn[data-value="完全獨立"]');
+        if (independentBtn) independentBtn.classList.remove("active");
+
+        // 檢查是否沒有任何提示層次被點選，若是，自動啟用完全獨立
+        const activePrompts = Array.from(chipBtns).filter(b => b.classList.contains("active") && b.getAttribute("data-value") !== "完全獨立");
+        if (activePrompts.length === 0 && independentBtn) {
+          independentBtn.classList.add("active");
+        }
+      }
+
+      // 更新隱藏 input 的值
+      const activeValues = Array.from(chipBtns)
+        .filter(b => b.classList.contains("active"))
+        .map(b => b.getAttribute("data-value"));
+      hiddenInput.value = activeValues.join("、");
+    });
+  });
+
+  // 主導覽列頁籤切換邏輯
+  navTabs.forEach(tab => {
+    tab.addEventListener("click", () => {
+      const targetTab = tab.getAttribute("data-tab");
+      switchWorkspaceTab(targetTab);
+    });
+  });
+
+  // 儲存首頁小考成績
+  saveDashBtn.addEventListener("click", handleDashRecordSubmit);
+
+  // 初始化首頁日期為今天
+  if (dashDate) {
+    dashDate.value = new Date().toISOString().split("T")[0];
+  }
 
   // 搜尋與同步
   searchInput.addEventListener("input", renderHistory);
@@ -147,6 +214,7 @@ function switchGrade(grade) {
     }
   });
   renderStudents();
+  renderDashStudentRows();
   renderHistory();
   renderCharts();
 }
@@ -157,6 +225,18 @@ function showRecordModal(show, studentName = "") {
     recordStudentName.value = studentName;
     gradeSubject.value = "";
     gradeScore.value = "";
+    supportLevelInput.value = "完全獨立";
+    
+    // 重設多選 Chip 的狀態
+    const chipBtns = document.querySelectorAll("#supportLevelChips .chip-btn");
+    chipBtns.forEach(b => {
+      if (b.getAttribute("data-value") === "完全獨立") {
+        b.classList.add("active");
+      } else {
+        b.classList.remove("active");
+      }
+    });
+
     noteInput.value = "";
     recordDate.value = new Date().toISOString().split("T")[0];
     
@@ -166,6 +246,188 @@ function showRecordModal(show, studentName = "") {
     recordModal.classList.add("active");
   } else {
     recordModal.classList.remove("active");
+  }
+}
+
+// 主導覽列切換邏輯 (SPA)
+function switchWorkspaceTab(tabName) {
+  navTabs.forEach(tab => {
+    if (tab.getAttribute("data-tab") === tabName) {
+      tab.classList.add("active");
+    } else {
+      tab.classList.remove("active");
+    }
+  });
+
+  tabPages.forEach(page => {
+    if (page.id === `page-${tabName}`) {
+      page.classList.remove("hidden");
+    } else {
+      page.classList.add("hidden");
+    }
+  });
+
+  // 切換至趨勢圖或分佈圖分頁時，自動觸發重繪/尺寸自適應，避免 Chart.js 寬高渲染為 0
+  if (tabName === "trend" || tabName === "distribution") {
+    renderCharts();
+  }
+}
+
+// 渲染首頁登記學生表格列
+function renderDashStudentRows() {
+  if (!dashStudentListBody) return;
+  dashStudentListBody.innerHTML = "";
+  
+  const filteredStudents = allStudents.filter(s => s.grade === currentGrade);
+  if (filteredStudents.length === 0) {
+    dashStudentListBody.innerHTML = `<tr><td colspan="4" style="text-align: center; color: var(--text-secondary); padding: 1.5rem;">此年級目前無學生資料</td></tr>`;
+    return;
+  }
+  
+  filteredStudents.forEach((student, index) => {
+    const tr = document.createElement("tr");
+    tr.className = "batch-student-row";
+    tr.setAttribute("data-name", student.name);
+    
+    tr.innerHTML = `
+      <td style="padding: 0.75rem 0.5rem; font-weight: 600; color: var(--text-primary);">${student.name}</td>
+      <td style="padding: 0.5rem;">
+        <input type="number" class="batch-score-input" min="0" max="100" placeholder="分數" tabindex="${index + 1}">
+      </td>
+      <td style="padding: 0.5rem;">
+        <div class="mini-chips-group">
+          <button type="button" class="mini-chip-btn active" data-value="完全獨立" title="完全獨立">獨立</button>
+          <button type="button" class="mini-chip-btn" data-value="口語提示" title="口語提示">口語</button>
+          <button type="button" class="mini-chip-btn" data-value="視覺提示" title="視覺提示">視覺</button>
+          <button type="button" class="mini-chip-btn" data-value="手勢提示" title="手勢提示">手勢</button>
+          <button type="button" class="mini-chip-btn" data-value="動作示範" title="動作示範">示範</button>
+          <button type="button" class="mini-chip-btn" data-value="肢體協助" title="肢體協助">肢體</button>
+        </div>
+      </td>
+      <td style="padding: 0.5rem;">
+        <input type="text" class="batch-note-input" placeholder="學習狀況" tabindex="${filteredStudents.length + index + 1}">
+      </td>
+    `;
+    
+    // 為這行的 mini-chips 綁定互動事件
+    const miniChips = tr.querySelectorAll(".mini-chip-btn");
+    miniChips.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const val = btn.getAttribute("data-value");
+        if (val === "完全獨立") {
+          // 點選完全獨立，清除其他
+          miniChips.forEach(b => {
+            if (b.getAttribute("data-value") === "完全獨立") {
+              b.classList.add("active");
+            } else {
+              b.classList.remove("active");
+            }
+          });
+        } else {
+          // 點選其他，切換自身狀態，並清除完全獨立
+          btn.classList.toggle("active");
+          const independentBtn = tr.querySelector('.mini-chip-btn[data-value="完全獨立"]');
+          if (independentBtn) independentBtn.classList.remove("active");
+          
+          // 若沒點選任何一個，重設為完全獨立
+          const activePrompts = Array.from(miniChips).filter(b => b.classList.contains("active") && b.getAttribute("data-value") !== "完全獨立");
+          if (activePrompts.length === 0 && independentBtn) {
+            independentBtn.classList.add("active");
+          }
+        }
+      });
+    });
+    
+    dashStudentListBody.appendChild(tr);
+  });
+}
+
+// 處理首頁成績登記提交
+async function handleDashRecordSubmit() {
+  const date = dashDate.value;
+  const subject = dashSubject.value.trim();
+  
+  if (!date) {
+    showToast("請選擇日期！", "error");
+    return;
+  }
+  if (!subject) {
+    showToast("請輸入小考科目/單元名稱！", "error");
+    return;
+  }
+  
+  const rows = dashStudentListBody.querySelectorAll(".batch-student-row");
+  const recordsToSave = [];
+  
+  // 驗證與收集數據
+  for (const row of rows) {
+    const name = row.getAttribute("data-name");
+    const scoreVal = row.querySelector(".batch-score-input").value.trim();
+    const noteVal = row.querySelector(".batch-note-input").value.trim();
+    
+    // 如果分數欄是空的，代表未作答或缺考，跳過不儲存
+    if (scoreVal === "") continue;
+    
+    const score = parseInt(scoreVal);
+    if (isNaN(score) || score < 0 || score > 100) {
+      showToast(`「${name}」的分數必須在 0 - 100 之間！`, "error");
+      return;
+    }
+    
+    // 獲取該生選取的 IEP 協助程度
+    const activeChips = Array.from(row.querySelectorAll(".mini-chip-btn.active"))
+      .map(b => b.getAttribute("data-value"));
+    const supportLevel = activeChips.join("、");
+    
+    recordsToSave.push({
+      grade: currentGrade,
+      name: name,
+      date: date,
+      subject: subject,
+      score: score,
+      supportLevel: supportLevel,
+      note: noteVal,
+      timestamp: new Date().toISOString()
+    });
+  }
+  
+  if (recordsToSave.length === 0) {
+    showToast("請至少輸入一位學生的成績！", "error");
+    return;
+  }
+  
+  setDashSubmitting(true);
+  
+  try {
+    const batch = writeBatch(db);
+    const gradeRecordsCol = collection(db, "gradeRecords");
+    
+    recordsToSave.forEach(record => {
+      const newDocRef = doc(gradeRecordsCol);
+      batch.set(newDocRef, record);
+    });
+    
+    await batch.commit();
+    showToast(`成功登記全班 ${recordsToSave.length} 筆成績！`, "success");
+    dashSubject.value = ""; // 儲存後清空科目/單元，利於下次輸入
+    await fetchData();
+  } catch (error) {
+    console.error(error);
+    showToast(`儲存失敗: ${error.message}`, "error");
+  } finally {
+    setDashSubmitting(false);
+  }
+}
+
+function setDashSubmitting(isSubmitting) {
+  if (isSubmitting) {
+    saveDashBtn.disabled = true;
+    dashBtnText.textContent = "儲存中...";
+    dashBtnLoader.classList.remove("hidden");
+  } else {
+    saveDashBtn.disabled = false;
+    dashBtnText.textContent = "儲存成績";
+    dashBtnLoader.classList.add("hidden");
   }
 }
 
@@ -242,6 +504,7 @@ async function fetchData() {
     gradeSummary = calculateGradeSummary(allRecords, allStudents);
 
     renderStudents();
+    renderDashStudentRows();
     renderHistory();
     renderCharts();
 
@@ -338,7 +601,7 @@ function renderStudents() {
         ${scoreText}
       </div>
       <button class="record-action-btn" data-name="${student.name}">
-        <i class="fa-solid fa-graduation-cap"></i> 登記與管理
+        <i class="fa-solid fa-list-check"></i> 個人明細
       </button>
     `;
 
@@ -374,7 +637,10 @@ function renderPersonalHistory(studentName) {
 
       li.innerHTML = `
         <div class="personal-history-meta">
-          <div class="personal-history-title">${escapeHTML(formatSubject(r.subject))}</div>
+          <div class="personal-history-title">
+            ${escapeHTML(formatSubject(r.subject))}
+            ${getSupportLevelBadgeHtml(r.supportLevel)}
+          </div>
           <div class="personal-history-sub">
             <span><i class="fa-regular fa-calendar"></i> ${formatRecordDate(r.date)}</span>
             ${r.note ? `<span title="${escapeHTML(r.note)}"><i class="fa-regular fa-comment"></i> ${escapeHTML(r.note)}</span>` : ""}
@@ -436,6 +702,7 @@ function renderHistory() {
             <h4>
               ${r.name} 
               <span class="student-status-label ${scoreStyle}" style="font-size:0.65rem; padding:1px 6px">${escapeHTML(formatSubject(r.subject))}</span>
+              ${getSupportLevelBadgeHtml(r.supportLevel)}
             </h4>
             <div class="history-time"><i class="fa-regular fa-calendar"></i> ${formatRecordDate(r.date)}</div>
             ${r.note ? `<div class="history-note"><i class="fa-regular fa-comment"></i> ${escapeHTML(r.note)}</div>` : ""}
@@ -468,6 +735,7 @@ async function handleRecordSubmit(e) {
   const date = recordDate.value;
   const subject = gradeSubject.value.trim();
   const score = parseInt(gradeScore.value);
+  const supportLevel = supportLevelInput.value;
   const note = noteInput.value.trim();
   
   if (isNaN(score) || score < 0 || score > 100) {
@@ -483,6 +751,7 @@ async function handleRecordSubmit(e) {
     date: date,
     subject: subject,
     score: score,
+    supportLevel: supportLevel,
     note: note,
     timestamp: new Date().toISOString()
   };
@@ -748,4 +1017,53 @@ function escapeHTML(str) {
       '"': '&quot;'
     }[tag] || tag)
   );
+}
+
+// 根據 IEP 協助程度返回對應的 Badge HTML (支援多選拆分顯示)
+function getSupportLevelBadgeHtml(supportLevel) {
+  if (!supportLevel) return "";
+  
+  const levels = supportLevel.split("、");
+  
+  return levels.map(level => {
+    let badgeClass = "iep-badge-accommodation";
+    let iconClass = "fa-solid fa-circle-info";
+    
+    switch (level) {
+      case "完全獨立":
+        badgeClass = "iep-badge-independent";
+        iconClass = "fa-solid fa-circle-check";
+        break;
+      case "口語提示":
+        badgeClass = "iep-badge-verbal";
+        iconClass = "fa-solid fa-comment-dots";
+        break;
+      case "視覺提示":
+        badgeClass = "iep-badge-visual";
+        iconClass = "fa-solid fa-eye";
+        break;
+      case "手勢提示":
+        badgeClass = "iep-badge-gestural";
+        iconClass = "fa-solid fa-hand-point-up";
+        break;
+      case "動作示範":
+        badgeClass = "iep-badge-modeling";
+        iconClass = "fa-solid fa-person-chalkboard";
+        break;
+      case "肢體協助":
+        badgeClass = "iep-badge-physical";
+        iconClass = "fa-solid fa-handshake-angle";
+        break;
+      case "報讀服務":
+        badgeClass = "iep-badge-oral";
+        iconClass = "fa-solid fa-volume-high";
+        break;
+      case "簡化評量/延長時間":
+        badgeClass = "iep-badge-accommodation";
+        iconClass = "fa-solid fa-clock";
+        break;
+    }
+    
+    return `<span class="iep-badge ${badgeClass}" title="IEP 協助程度: ${escapeHTML(level)}"><i class="${iconClass}"></i> ${escapeHTML(level)}</span>`;
+  }).join("");
 }
